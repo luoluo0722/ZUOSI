@@ -1,0 +1,1 @@
+cmd_libpwdgrp/lib.a := rm -f libpwdgrp/lib.a; /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ar  rcs libpwdgrp/lib.a libpwdgrp/pwd_grp.o libpwdgrp/uidgid_get.o

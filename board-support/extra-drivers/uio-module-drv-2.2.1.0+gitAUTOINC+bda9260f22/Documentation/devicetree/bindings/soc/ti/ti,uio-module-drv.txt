@@ -1,0 +1,90 @@
+UIO Peripheral Modules
+
+This file provides information about, what the device tree entry for the
+uio accesible peripheral module device should contain.
+
+Required properties:
+- compatible : "ti,uio-module-drv"
+-  mem : Register/Memory start address and size of the Register/memory region.
+or
+-  interrupts : standard interrupt property
+
+
+Recommended properties :
+mem-names: Associated names of the mem sections
+
+Optional properties:
+- interrupt-mode: 
+	interrupt-mode = <1>; /* Interrupt mode oneshot */
+	interrupt-mode = <0>; /* Interrupt mode no disable */
+
+CAUTION:  With no disable, interrupt-mode = <0>, if interrupts are level triggered,
+          it can cause infinite loop */
+
+- clocks : desired clock domain property
+- ti,hwmods: desired hwmod property
+
+- cfg-params: Specifies configuration parameters to be used with specific peripherals
+	ti,serdes_refclk_khz: serdes reference clock in khz
+	ti,serdes_maxserrate_khz: serdes maximum serial rate in khz
+	ti,serdes_maxlanerate: Lane rate "half" or "full"
+	ti,serdes_numlanes: Number of lanes
+	The following are serdes equilization tap parameters
+	ti,serdes_c1	: Serdes c1 coefficient (0-31), one per lane
+	ti,serdes_c2	: Serdes c2 coefficient (0-15), one per lane
+	ti,serdes_cm	: Serdes cm coefficient (0-15), one per lane
+	ti,serdes_tx_att: Transmit att, one per lane
+	ti,serdes_tx_vreg: Transmit vreg, one per lane
+	ti,serdes_rx_att: Receive att, one per lane
+	ti,serdes_rx_boost: Receive boost, one per lane
+	ti,qm-queue     : QMSS queue associated with qpend binding
+
+Examples:
+
+	uio_hyperlink0: hyperlink0 {
+		compatible = "ti,uio-module-drv";
+		mem  = <0x21400000 0x00001000
+			0x40000000 0x10000000
+			0x0231a000 0x00002000>;
+		clocks = <&clkhyperlink0>;
+		interrupts	= <0 387 0x101>;
+		cfg-params
+		{
+			ti,serdes_refclk_khz = <312500>;
+			ti,serdes_maxserrate_khz = <6250000>;
+			ti,serdes_lanerate = "half";
+			ti,serdes_numlanes = <4>;
+			ti,serdes_c1 = <4 4 4 4>;
+			ti,serdes_c2 = <0 0 0 0>;
+			ti,serdes_cm = <0 0 0 0>;
+			ti,serdes_tx_att = <12 12 12 12>;
+			ti,serdes_tx_vreg = <4 4 4 4>;
+			ti,serdes_rx_att = <11 11 11 11>;
+			ti,serdes_rx_boost = <3 3 3 3>;
+		};
+	};
+
+	uio_qpend0: qpend0 {
+		compatible = "ti,uio-module-drv";
+		interrupts = <0 44 0xf04>;
+		interrupt-mode = <1>; /* Interrupt mode oneshot */
+		cfg-params
+		{
+			ti,qm-queue = <662>;
+		};
+	};
+
+	uio_pruss1_mem: uio_pruss1_mem {
+		compatible = "ti,uio-module-drv";
+		ti,hwmods = "pruss1";
+		mem = <0x4b200000 0x2000>,
+		      <0x4b202000 0x2000>,
+		      <0x4b210000 0x8000>,
+		      <0x4b220000 0x2000>,
+		      <0x4b226000 0x2000>,
+		      <0x4b22e000 0x31c>,
+		      <0x4b232000 0x58>;
+		mem-names = "dram0", "dram1", "shrdram2", "intc", "cfg",
+			    "iep", "mii_rt";
+		status = "okay";
+	};

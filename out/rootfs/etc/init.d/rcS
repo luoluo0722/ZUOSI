@@ -1,0 +1,41 @@
+#! /bin/sh
+
+/bin/mount -a
+#/bin/mount -n -t ramfs ramfs /var
+
+#/bin/mount -n -t ramfs ramfs /tmp
+
+#/bin/mount -n -t sysfs none /sys
+
+#/bin/mount -n -t ramfs none /dev
+
+/bin/mkdir /var/tmp
+
+/bin/mkdir /var/modules
+
+/bin/mkdir /var/run
+
+/bin/mkdir /var/log
+
+/bin/mkdir -p /dev/pts
+
+/bin/mkdir -p /dev/shm
+
+#echo /sbin/mdev > /proc/sys/kernel/hotplug
+
+/sbin/mdev -s
+
+#network config
+
+/sbin/ifconfig lo 127.0.0.1 netmask 255.0.0.0
+
+/sbin/ifconfig eth0 192.168.1.70
+/sbin/ifconfig eth0 netmask 255.255.255.0
+/sbin/route add default gw 192.168.1.1 eth0
+
+/sbin/ifconfig eth1 192.168.1.71 netmask 255.255.255.0
+/sbin/route add default gw 192.168.1.1 eth1
+
+/usr/bin/mysql_install_db  -u root --force --basedir=/usr --datadir=/var/mysql
+chown -R mysql:mysql /var/mysql
+

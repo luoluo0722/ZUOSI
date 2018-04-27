@@ -35,10 +35,10 @@ export CC=$(CROSS_COMPILE)gcc
 export ENV_SETUP=$(LINUX_DEVKIT_PATH)/environment-setup
 
 #The directory that points to the SDK kernel source tree
-export LINUX_KERNEL_SRC_DIR=$(TI_SDK_PATH)/board-support/linux-4.9.59
+export LINUX_KERNEL_SRC_DIR=$(TI_SDK_PATH)/board-support/linux-4.9.59_ti
 
 #The directory that points to the SDK uboot source tree
-export UBOOT_SRC_DIR=$(TI_SDK_PATH)/board-support/u-boot-2017.01
+export UBOOT_SRC_DIR=$(TI_SDK_PATH)/board-support/u-boot-2017.01_ti
 
 #The directory that points to the busybox source tree
 export BUSYBOX_DIR=$(TI_SDK_PATH)/busybox-1.28.3

@@ -2,7 +2,7 @@
 
 MAKE_JOBS ?= 1
 
-all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg u-boot-spl_download
+all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg
 clean: linux_clean u-boot-spl_clean linux-dtbs_clean
 install: linux_install u-boot-spl_install linux-dtbs_install
 

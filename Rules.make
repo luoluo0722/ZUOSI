@@ -11,7 +11,7 @@ ARCH=armv7-a
 UBOOT_MACHINE=am335x_evm_config
 
 #Points to the root of the TI SDK
-export TI_SDK_PATH=/home/zte/ZUOSI
+export TI_SDK_PATH=$(shell pwd)
 
 export OUT_DIR=$(TI_SDK_PATH)/out
 
@@ -35,10 +35,10 @@ export CC=$(CROSS_COMPILE)gcc
 export ENV_SETUP=$(LINUX_DEVKIT_PATH)/environment-setup
 
 #The directory that points to the SDK kernel source tree
-export LINUX_KERNEL_SRC_DIR=$(TI_SDK_PATH)/board-support/linux-4.9.59+gitAUTOINC+a75d8e9305-ga75d8e9305
+export LINUX_KERNEL_SRC_DIR=$(TI_SDK_PATH)/board-support/linux-4.9.59
 
 #The directory that points to the SDK uboot source tree
-export UBOOT_SRC_DIR=$(TI_SDK_PATH)/board-support/u-boot-2017.01+gitAUTOINC+340fb36f04-g340fb36f04
+export UBOOT_SRC_DIR=$(TI_SDK_PATH)/board-support/u-boot-2017.01
 
 #The directory that points to the busybox source tree
 export BUSYBOX_DIR=$(TI_SDK_PATH)/busybox-1.28.3

@@ -1,5 +1,0 @@
-./configure --prefix=/home/zte/ZUOSI/out/intermediate/mysql-5.1.73
-./configure --host=arm-linux-gnueabihf --prefix=/home/zte/ZUOSI/out/intermediate/ncurses-5.9 --enable-static
-./configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static
-mysql_install_db  -u root --force --basedir=/usr --datadir=/var/mysql
-chown -R mysql:mysql /var/mysql

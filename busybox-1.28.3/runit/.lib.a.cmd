@@ -1,1 +1,0 @@
-cmd_runit/lib.a := rm -f runit/lib.a; /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ar  rcs runit/lib.a runit/chpst.o runit/runsv.o runit/runsvdir.o runit/sv.o runit/svlogd.o

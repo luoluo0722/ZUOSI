@@ -46,12 +46,12 @@ NCURSES_PATCH	= 20110404
 top_srcdir	= .
 srcdir		= .
 
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
 
 bindir		= ${exec_prefix}/bin
-ticdir		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9/share/terminfo
-includedir	= ${prefix}/include/ncurses
+ticdir		= /usr/share/terminfo
+includedir	= ${prefix}/include
 libdir		= ${exec_prefix}/lib
 mandir		= ${prefix}/man
 

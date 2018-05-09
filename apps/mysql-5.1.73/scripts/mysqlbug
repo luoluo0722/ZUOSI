@@ -23,9 +23,9 @@ VERSION="5.1.73"
 COMPILATION_COMMENT="Source distribution"
 BUGmysql="mysql@lists.mysql.com"
 # This is set by configure
-COMP_CALL_INFO="CC='arm-linux-gnueabihf-gcc'  CFLAGS='-g -O2'  CXX=''  CXXFLAGS=''  LDFLAGS=''  ASFLAGS=''"
-COMP_RUN_INFO="CC='arm-linux-gnueabihf-gcc'  CFLAGS=' -g -O2   -DUNIV_LINUX -DUNIV_LINUX'  CXX='arm-linux-gnueabihf-g++'  CXXFLAGS='-O3    -fno-implicit-templates -fno-exceptions -fno-rtti'  LDFLAGS=' -rdynamic '  ASFLAGS=''"
-CONFIGURE_LINE="./configure  '--host=arm-linux-gnueabihf' '--prefix=/usr' '--with-named-curses-libs=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/lib/libncurses.a' '--without-debug' '--without-docs' '--without-man' '--without-bench' '--with-charset=gb2312' '--with-extra-charsets=ascii,latin1,utf8' '--enable-static' 'host_alias=arm-linux-gnueabihf'"
+COMP_CALL_INFO="CC='/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc'  CFLAGS='-g -O2'  CXX=''  CXXFLAGS=''  LDFLAGS=''  ASFLAGS=''"
+COMP_RUN_INFO="CC='/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc'  CFLAGS=' -g -O2   -DUNIV_LINUX -DUNIV_LINUX'  CXX='arm-linux-gnueabihf-g++'  CXXFLAGS='-O3    -fno-implicit-templates -fno-exceptions -fno-rtti'  LDFLAGS=' -rdynamic '  ASFLAGS=''"
+CONFIGURE_LINE="./configure  '--host=arm-linux-gnueabihf' '--prefix=/usr' '--with-named-curses-libs=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/usr/lib/libncurses.a' '--without-debug' '--without-docs' '--without-man' '--without-bench' '--with-charset=gb2312' '--with-extra-charsets=ascii,latin1,utf8' '--enable-static' 'host_alias=arm-linux-gnueabihf' 'CC=/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc'"
 
 LIBC_INFO=""
 for pat in /lib/libc.* /lib/libc-* /usr/lib/libc.* /usr/lib/libc-*

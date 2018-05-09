@@ -59,11 +59,11 @@ MODEL		= normal
 DESTDIR		= 
 top_srcdir	= ..
 srcdir		= .
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
 bindir		= ${exec_prefix}/bin
 libdir		= ${exec_prefix}/lib
-includedir	= ${prefix}/include/ncurses
+includedir	= ${prefix}/include
 datadir		= ${prefix}/share
 
 LIBTOOL		= 
@@ -88,12 +88,12 @@ LN_S		= ln -s -f
 CTAGS		= 
 ETAGS		= 
 
-CC		= arm-linux-gnueabihf-gcc
-CPP		= arm-linux-gnueabihf-gcc -E
+CC		= /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
+CPP		= /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc -E
 CFLAGS		= -O2 --param max-inline-insns-single=1200
 
 INCDIR		= $(srcdir)/../include
-CPPFLAGS	= -DHAVE_CONFIG_H -I../ncurses -I$(srcdir)  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include -I${includedir}
+CPPFLAGS	= -DHAVE_CONFIG_H -I../ncurses -I$(srcdir)  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include
 
 CCFLAGS		= $(CPPFLAGS) $(CFLAGS)
 
@@ -145,7 +145,7 @@ FALLBACK_LIST	=
 USE_BIG_STRINGS	= 1
 TERMINFO_CAPS	= $(top_srcdir)/include/Caps
 
-TERMINFO	= /home/zte/ZUOSI/out/intermediate/ncurses-5.9/share/terminfo
+TERMINFO	= /usr/share/terminfo
 TERMINFO_SRC	= ${top_srcdir}/misc/terminfo.src
 TIC_PATH	= /usr/bin/tic
 
@@ -508,7 +508,7 @@ lint :
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h ./curses.priv.h
 #  host:          arm-unknown-linux-gnueabihf
 
@@ -673,6 +673,9 @@ install.libs \
 install.ncurses :: $(DESTDIR)$(libdir) ../lib/libncurses.a
 	@echo installing ../lib/libncurses.a as $(DESTDIR)$(libdir)/libncurses.a
 	$(INSTALL_DATA) ../lib/libncurses.a $(DESTDIR)$(libdir)/libncurses.a
+	@echo linking libcurses.a to libncurses.a
+	-@rm -f $(DESTDIR)$(libdir)/libcurses.a
+	(cd $(DESTDIR)$(libdir) && $(LN_S) libncurses.a libcurses.a; )
 	$(RANLIB) $(DESTDIR)$(libdir)/libncurses.a
 
 uninstall \
@@ -680,6 +683,8 @@ uninstall.libs \
 uninstall.ncurses ::
 	@echo uninstalling $(DESTDIR)$(libdir)/libncurses.a
 	-@rm -f $(DESTDIR)$(libdir)/libncurses.a
+	@echo linking libcurses.a to libncurses.a
+	-@rm -f $(DESTDIR)$(libdir)/libcurses.a
 
 clean ::
 	-rm -f ../lib/libncurses.a
@@ -1366,7 +1371,7 @@ mostlyclean::
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h ./curses.priv.h
 #  host:          arm-unknown-linux-gnueabihf
 

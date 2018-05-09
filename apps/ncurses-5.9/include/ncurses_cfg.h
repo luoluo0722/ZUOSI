@@ -54,8 +54,8 @@
 #define HAVE_LONG_FILE_NAMES 1
 #define MIXEDCASE_FILENAMES 1
 #define USE_DATABASE 1
-#define TERMINFO_DIRS "/home/zte/ZUOSI/out/intermediate/ncurses-5.9/share/terminfo"
-#define TERMINFO "/home/zte/ZUOSI/out/intermediate/ncurses-5.9/share/terminfo"
+#define TERMINFO_DIRS "/usr/share/terminfo"
+#define TERMINFO "/usr/share/terminfo"
 #define PURE_TERMINFO 1
 #define USE_HOME_TERMINFO 1
 #define USE_ROOT_ENVIRON 1

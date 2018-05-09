@@ -52,11 +52,11 @@ o		= .o
 MODEL		= normal
 DESTDIR		= 
 srcdir		= .
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
 bindir		= ${exec_prefix}/bin
 libdir		= ${exec_prefix}/lib
-includedir	= ${prefix}/include/ncurses
+includedir	= ${prefix}/include
 
 LIBTOOL		= 
 LIBTOOL_CLEAN	= 
@@ -80,11 +80,11 @@ LN_S		= ln -s -f
 CTAGS		= 
 ETAGS		= 
 
-CC		= arm-linux-gnueabihf-gcc
-CPP		= arm-linux-gnueabihf-gcc -E
+CC		= /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
+CPP		= /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc -E
 CFLAGS		= -O2 --param max-inline-insns-single=1200
 
-CPPFLAGS	= -I../ncurses -DHAVE_CONFIG_H  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include -I${includedir}
+CPPFLAGS	= -I../ncurses -DHAVE_CONFIG_H  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include
 
 CCFLAGS		= $(CPPFLAGS) $(CFLAGS)
 
@@ -245,7 +245,7 @@ lint :
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h ./menu.priv.h
 #  host:          arm-unknown-linux-gnueabihf
 
@@ -436,7 +436,7 @@ mostlyclean::
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h ./menu.priv.h
 #  host:          arm-unknown-linux-gnueabihf
 

@@ -1,1 +1,0 @@
-cmd_coreutils/libcoreutils/lib.a := rm -f coreutils/libcoreutils/lib.a; /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ar  rcs coreutils/libcoreutils/lib.a coreutils/libcoreutils/cp_mv_stat.o coreutils/libcoreutils/getopt_mk_fifo_nod.o

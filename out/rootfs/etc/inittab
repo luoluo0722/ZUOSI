@@ -1,6 +1,0 @@
-::sysinit:/etc/init.d/rcS
-#::respawn:-/bin/sh
-#::respawn:-/bin/login
-console::askfirst:-/bin/sh
-#tty2::askfirst:-/bin/sh
-::ctrlaltdel:/bin/umount -a -r

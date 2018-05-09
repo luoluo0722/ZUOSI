@@ -31,7 +31,7 @@
 # This script returns the options to add to `gnatmake' for using AdaCurses.
 
 DESTDIR=
-prefix=/home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix=/usr
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 

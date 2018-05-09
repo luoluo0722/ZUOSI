@@ -52,14 +52,14 @@ CF_MFLAGS 	=
 DESTDIR		= 
 top_srcdir	= ..
 srcdir		= .
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
 bindir		= ${exec_prefix}/bin
 libdir		= ${exec_prefix}/lib
 datadir		= ${prefix}/share
 
 tabsetdir	= $(datadir)/tabset
-ticdir		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9/share/terminfo
+ticdir		= /usr/share/terminfo
 ticfile		= $(ticdir).db
 source		= ${top_srcdir}/misc/terminfo.src
 

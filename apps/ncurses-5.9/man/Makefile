@@ -39,7 +39,7 @@ SHELL		= /bin/sh
 
 DESTDIR		= 
 srcdir		= .
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
 datadir		= ${prefix}/share
 mandir		= ${prefix}/man

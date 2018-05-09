@@ -45,11 +45,11 @@ o		= .o
 
 MODEL		= ../objects
 srcdir		= .
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
 bindir		= ${exec_prefix}/bin
 libdir		= ${exec_prefix}/lib
-includedir	= ${prefix}/include/ncurses
+includedir	= ${prefix}/include
 
 BINDIR		= $(DESTDIR)$(bindir)
 LIBDIR		= $(DESTDIR)$(libdir)
@@ -68,11 +68,11 @@ TRANSFORM	= sed 's/$x$$//'|sed '$(transform)'|sed 's/$$/$x/'
 CTAGS		= 
 ETAGS		= 
 
-CC		= arm-linux-gnueabihf-gcc
-CPP		= arm-linux-gnueabihf-gcc -E
+CC		= /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
+CPP		= /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc -E
 
 CFLAGS		= -O2 --param max-inline-insns-single=1200 
-CPPFLAGS	= -I. -I$(srcdir) -I../test -DHAVE_CONFIG_H  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include -I${includedir}
+CPPFLAGS	= -I. -I$(srcdir) -I../test -DHAVE_CONFIG_H  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include
 
 CCFLAGS		= $(CPPFLAGS) $(CFLAGS)
 
@@ -496,7 +496,7 @@ lintlib :
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h ./test.priv.h
 #  host:          arm-unknown-linux-gnueabihf
 
@@ -853,7 +853,7 @@ clean ::
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h ./test.priv.h
 #  host:          arm-unknown-linux-gnueabihf
 

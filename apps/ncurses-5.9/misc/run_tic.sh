@@ -43,14 +43,14 @@ echo '** Building terminfo database, please wait...'
 
 : ${suffix:=}
 : ${DESTDIR:=}
-: ${prefix:=/home/zte/ZUOSI/out/intermediate/ncurses-5.9}
+: ${prefix:=/usr}
 : ${exec_prefix:=${prefix}}
 : ${bindir:=${exec_prefix}/bin}
 : ${top_srcdir:=..}
 : ${srcdir:=.}
 : ${datadir:=${prefix}/share}
 : ${TIC_PATH:=/usr/bin/tic}
-: ${ticdir:=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/share/terminfo}
+: ${ticdir:=/usr/share/terminfo}
 : ${source:=${top_srcdir}/misc/terminfo.src}
 : ${LN_S:="ln -s -f"}
 : ${cross_compiling:=no}

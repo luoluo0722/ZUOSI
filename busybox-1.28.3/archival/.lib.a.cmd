@@ -1,1 +1,0 @@
-cmd_archival/lib.a := rm -f archival/lib.a; /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ar  rcs archival/lib.a archival/bbunzip.o archival/bzip2.o archival/cpio.o archival/dpkg.o archival/dpkg_deb.o archival/gzip.o archival/lzop.o archival/rpm.o archival/tar.o archival/unzip.o

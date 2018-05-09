@@ -45,9 +45,9 @@ THIS		= Makefile
 
 DESTDIR		= 
 srcdir		= .
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
-includedir	= ${prefix}/include/ncurses
+includedir	= ${prefix}/include
 
 INSTALL		= /usr/bin/install -c
 INSTALL_DATA	= ${INSTALL} -m 644

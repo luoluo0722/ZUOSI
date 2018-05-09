@@ -45,10 +45,10 @@ o		= .o
 MODEL		= ../objects
 DESTDIR		= 
 srcdir		= .
-prefix		= /home/zte/ZUOSI/out/intermediate/ncurses-5.9
+prefix		= /usr
 exec_prefix	= ${prefix}
 libdir		= ${exec_prefix}/lib
-includedir	= ${prefix}/include/ncurses
+includedir	= ${prefix}/include
 
 LIBTOOL		= 
 LIBTOOL_CLEAN	= 
@@ -76,7 +76,7 @@ CXXFLAGS	= -O2
 CXXLIBS		= 
 
 INCDIR		= ../include
-CPPFLAGS	= -I../c++ -I$(INCDIR) -I$(srcdir) -DHAVE_CONFIG_H  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include -I${includedir}
+CPPFLAGS	= -I../c++ -I$(INCDIR) -I$(srcdir) -DHAVE_CONFIG_H  -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64  -DNDEBUG -I. -I../include
 
 CTAGS		= 
 ETAGS		= 
@@ -290,7 +290,7 @@ lintlib :
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h
 #  host:          arm-unknown-linux-gnueabihf
 
@@ -382,7 +382,7 @@ clean ::
 #  DoLinks:       yes
 #  rmSoLocs:      no
 #  ldconfig:      :
-#  overwrite:     no
+#  overwrite:     yes
 #  depend:        ../include/ncurses_cfg.h
 #  host:          arm-unknown-linux-gnueabihf
 

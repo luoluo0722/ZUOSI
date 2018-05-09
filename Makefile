@@ -3,7 +3,7 @@
 MAKE_JOBS ?= 1
 
 all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg
-clean: linux_clean u-boot-spl_clean linux-dtbs_clean
+clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean
 install: linux_install u-boot-spl_install linux-dtbs_install
 
 # Kernel build targets
@@ -47,6 +47,12 @@ u-boot: linux-dtbs
 	@echo ===================================
 	$(MAKE) -j $(MAKE_JOBS) -C $(UBOOT_SRC_DIR) CROSS_COMPILE=$(CROSS_COMPILE) $(UBOOT_MACHINE)
 	$(MAKE) -j $(MAKE_JOBS) -C $(UBOOT_SRC_DIR) CROSS_COMPILE=$(CROSS_COMPILE) DTC=$(LINUX_KERNEL_SRC_DIR)/scripts/dtc/dtc
+	@echo ===================================
+	@echo    Installing U-boot
+	@echo ===================================
+	cp $(UBOOT_SRC_DIR)/MLO $(TI_SDK_PATH)/out/
+	cp $(UBOOT_SRC_DIR)/u-boot.img $(TI_SDK_PATH)/out/
+	cp $(UBOOT_SRC_DIR)/spl/u-boot-spl.bin $(TI_SDK_PATH)/out/
 
 u-boot_clean:
 	@echo ===================================
@@ -98,22 +104,38 @@ busybox:
 	cp -r $(BUSYBOX_DIR)/examples/bootfloppy/etc/* $(ROOTFS)/etc
 	cp -a $(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/lib/*so* $(ROOTFS)/lib/
 	cp -a $(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*so* $(ROOTFS)/lib/
+	
+busybox_clean:
+	@echo =======================================
+	@echo     Cleaning the busybox
+	@echo =======================================
+	$(MAKE) -C $(BUSYBOX_DIR) clean
+	rm -rf $(ROOTFS)/*
 
 ncurses:
 	@echo =====================================
 	@echo     Building the ncurses for mysql
 	@echo =====================================
-	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) make -C $(NCURSES_SRC)
-	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) make -C $(NCURSES_SRC) install
+	pushd $(NCURSES_SRC);PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) ./configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static;sed -i '1594d' include/curses.h;popd
+	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(NCURSES_SRC)
+	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(NCURSES_SRC) install DESTDIR=$(TI_SDK_PATH)/out/intermediate/ncurses-5.9
+	
+ncurses_clean:
+	@echo =======================================
+	@echo     Cleaning the ncurses
+	@echo =======================================
+	$(MAKE) -C $(NCURSES_SRC) clean
+	rm -rf $(TI_SDK_PATH)/out/intermediate/ncurses-5.9/*
 
 mysql: ncurses
 	@echo =====================================
 	@echo     Building the mysql
 	@echo =====================================
+	pushd $(MYSQL_SRC);PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) ./configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(TI_SDK_PATH)/out/intermediate/ncurses-5.9/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) make -C $(MYSQL_SRC)
+	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC)	
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) make -C $(MYSQL_SRC) install DESTDIR=$(TI_SDK_PATH)/out/intermediate/mysql-5.1.73
+	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC) install DESTDIR=$(TI_SDK_PATH)/out/intermediate/mysql-5.1.73
 	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr/lib/mysql/*.a
 	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr/lib/mysql/plugin/*.a
 	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr/mysql-test
@@ -127,6 +149,13 @@ mysql: ncurses
 	ln -sf /usr/bin/mysql $(ROOTFS)/usr/sbin/
 	ln -sf /usr/bin/mysqldump $(ROOTFS)/usr/sbin/
 	ln -sf /usr/bin/mysqladmin $(ROOTFS)/usr/sbin/
+	
+mysql_clean:
+	@echo =======================================
+	@echo     Cleaning the mysql
+	@echo =======================================
+	$(MAKE) -C $(MYSQL_SRC) clean
+	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/*
 
 ubifsimg:
 	pushd $(OUT_DIR);mkfs.ubifs -r rootfs -m 2048 -e 126976 -c 992 -o am335xubifs.img;ubinize -o am335xubi.img -m 2048 -p 128KiB -s 512 -O 2048 $(CONFIG_DIR)/ubinize.cfg;popd

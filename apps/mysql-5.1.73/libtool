@@ -129,7 +129,7 @@ old_postinstall_cmds="chmod 644 \$oldlib~\$RANLIB \$oldlib"
 old_postuninstall_cmds=""
 
 # A C compiler.
-LTCC="arm-linux-gnueabihf-gcc"
+LTCC="/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc"
 
 # LTCC compiler flags.
 LTCFLAGS=" -g -O2   -DUNIV_LINUX -DUNIV_LINUX"
@@ -260,7 +260,7 @@ LD="/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linu
 old_archive_cmds="\$AR \$AR_FLAGS \$oldlib\$oldobjs~\$RANLIB \$oldlib"
 
 # A language specific compiler.
-CC="arm-linux-gnueabihf-gcc"
+CC="/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc"
 
 # Is the compiler the GNU compiler?
 with_gcc=yes

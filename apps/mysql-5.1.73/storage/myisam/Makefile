@@ -171,15 +171,15 @@ AM_CFLAGS =
 AM_CXXFLAGS = 
 AR = arm-linux-gnueabihf-ar
 ARFLAGS = cru
-AS = arm-linux-gnueabihf-gcc -c
+AS = /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc -c
 ASFLAGS = 
 AUTOCONF = ${SHELL} /home/zte/ZUOSI/apps/mysql-5.1.73/missing --run autoconf
 AUTOHEADER = ${SHELL} /home/zte/ZUOSI/apps/mysql-5.1.73/missing --run autoheader
 AUTOMAKE = ${SHELL} /home/zte/ZUOSI/apps/mysql-5.1.73/missing --run automake-1.10
 AVAILABLE_LANGUAGES = czech danish dutch english estonian french german greek hungarian italian japanese korean norwegian norwegian-ny polish portuguese romanian russian serbian slovak spanish swedish ukrainian
 AWK = gawk
-CC = arm-linux-gnueabihf-gcc
-CCAS = arm-linux-gnueabihf-gcc
+CC = /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
+CCAS = /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
 CCASDEPMODE = depmode=gcc3
 CCASFLAGS = -g -O2    -Wa,--noexecstack
 CCDEPMODE = depmode=gcc3
@@ -192,9 +192,9 @@ CLIENT_LIBS = -lcrypt -lnsl -lm   $(top_builddir)/zlib/libzlt.la
 CLIENT_THREAD_LIBS = -lpthread
 CMP = /usr/bin/cmp
 COMPILATION_COMMENT = Source distribution
-CONF_COMMAND = ./configure  '--host=arm-linux-gnueabihf' '--prefix=/usr' '--with-named-curses-libs=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/lib/libncurses.a' '--without-debug' '--without-docs' '--without-man' '--without-bench' '--with-charset=gb2312' '--with-extra-charsets=ascii,latin1,utf8' '--enable-static' 'host_alias=arm-linux-gnueabihf'
+CONF_COMMAND = ./configure  '--host=arm-linux-gnueabihf' '--prefix=/usr' '--with-named-curses-libs=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/usr/lib/libncurses.a' '--without-debug' '--without-docs' '--without-man' '--without-bench' '--with-charset=gb2312' '--with-extra-charsets=ascii,latin1,utf8' '--enable-static' 'host_alias=arm-linux-gnueabihf' 'CC=/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc'
 CP = /bin/cp
-CPP = arm-linux-gnueabihf-gcc -E
+CPP = /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc -E
 CPPFLAGS = 
 CXX = arm-linux-gnueabihf-g++
 CXXCPP = arm-linux-gnueabihf-g++ -E
@@ -305,7 +305,7 @@ PS = /bin/ps
 RANLIB = arm-linux-gnueabihf-ranlib
 RM = /bin/rm
 SAVE_ASFLAGS = 
-SAVE_CC = arm-linux-gnueabihf-gcc
+SAVE_CC = /home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
 SAVE_CFLAGS = -g -O2
 SAVE_CXX = 
 SAVE_CXXFLAGS = 
@@ -321,7 +321,7 @@ STRIP = arm-linux-gnueabihf-strip
 SYSTEM_TYPE = unknown-linux-gnueabihf
 TAR = tar
 TARGET_LINUX = true
-TERMCAP_LIB = /home/zte/ZUOSI/out/intermediate/ncurses-5.9/lib/libncurses.a
+TERMCAP_LIB = /home/zte/ZUOSI/out/intermediate/ncurses-5.9/usr/lib/libncurses.a
 TEST_NDBCLUSTER = 
 THREAD_LOBJECTS = thr_alarm.o thr_lock.o thr_mutex.o thr_rwlock.o my_pthread.o my_thr_init.o mf_keycache.o
 VERSION = 5.1.73
@@ -1019,7 +1019,7 @@ prolint:;	plparse -b -u -hF1 "-width(0,0)" "-format=%f:%l:\s%t:%n\s%m" \
 	  -e 's!@''datadir''@!$(datadir)!g' \
 	  -e 's!@''localstatedir''@!$(localstatedir)!g' \
 	  -e 's!@''libexecdir''@!$(libexecdir)!g' \
-	  -e 's!@''CC''@!arm-linux-gnueabihf-gcc!'\
+	  -e 's!@''CC''@!/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc!'\
 	  -e 's!@''CXX''@!arm-linux-gnueabihf-g++!'\
 	  -e 's!@''GXX''@!yes!'\
 	  -e 's!@''PERL''@!/usr/bin/perl!' \
@@ -1037,7 +1037,7 @@ prolint:;	plparse -b -u -hF1 "-width(0,0)" "-format=%f:%l:\s%t:%n\s%m" \
 	  -e 's!@''MYSQLD_DEFAULT_SWITCHES''@!--skip-external-locking!' \
 	  -e 's!@''MYSQL_UNIX_ADDR''@!/tmp/mysql.sock!' \
 	  -e 's!@''TARGET_LINUX''@!true!' \
-	  -e "s!@""CONF_COMMAND""@!./configure  '--host=arm-linux-gnueabihf' '--prefix=/usr' '--with-named-curses-libs=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/lib/libncurses.a' '--without-debug' '--without-docs' '--without-man' '--without-bench' '--with-charset=gb2312' '--with-extra-charsets=ascii,latin1,utf8' '--enable-static' 'host_alias=arm-linux-gnueabihf'!" \
+	  -e "s!@""CONF_COMMAND""@!./configure  '--host=arm-linux-gnueabihf' '--prefix=/usr' '--with-named-curses-libs=/home/zte/ZUOSI/out/intermediate/ncurses-5.9/usr/lib/libncurses.a' '--without-debug' '--without-docs' '--without-man' '--without-bench' '--with-charset=gb2312' '--with-extra-charsets=ascii,latin1,utf8' '--enable-static' 'host_alias=arm-linux-gnueabihf' 'CC=/home/zte/ZUOSI/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc'!" \
 	  -e 's!@''MYSQLD_USER''@!mysql!' \
 	  -e 's!@''sysconfdir''@!${prefix}/etc!' \
 	  -e 's!@''SHORT_MYSQL_INTRO''@!@SHORT_MYSQL_INTRO@!' \

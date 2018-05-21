@@ -14,7 +14,8 @@ UBOOT_MACHINE=am335x_evm_config
 export TI_SDK_PATH=$(shell pwd)
 
 export OUT_DIR=$(TI_SDK_PATH)/out
-
+export KERNEL_OBJ=$(OUT_DIR)/kernel_obj
+export UBOOT_OBJ=$(OUT_DIR)/uboot_obj
 export CONFIG_DIR=$(TI_SDK_PATH)/configs
 
 #root of the target file system for installing applications

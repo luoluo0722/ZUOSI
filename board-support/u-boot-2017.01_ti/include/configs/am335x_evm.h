@@ -162,6 +162,21 @@
 		"else " \
 			"setenv console ttyO0,115200n8;" \
 		"fi;\0" \
+	"xflash=echo Update Firmware...; "\
+		"nand erase.chip; "\
+		"mmc rescan; "\
+		"mw.b 0x82000000 0xFF; "\
+		"fatload mmc 0 0x82000000 MLO; "\
+		"nand write 0x82000000 NAND.SPL ${filesize}; "\
+		"fatload mmc 0 0x82000000 u-boot.img; "\
+		"nand write 0x82000000 NAND.u-boot ${filesize}; "\
+		"fatload mmc 0 0x82000000 am335x-evm.dtb; "\
+		"nand write 0x82000000 NAND.u-boot-spl-os ${filesize}; "\
+		"fatload mmc 0 0x82000000 zImage; "\
+		"nand write 0x82000000 NAND.kernel ${filesize}; "\
+		"fatload mmc 0 0x82000000 am335xubi.img; "\
+		"nand write 0x82000000 NAND.file-system ${filesize}; "\
+		"echo Update Complete...;\0"\
 	NANDARGS \
 	NETARGS \
 	DFUARGS \
@@ -200,6 +215,19 @@
 
 #ifdef CONFIG_NAND
 /* NAND: device related configs */
+#ifndef CONFIG_SPL_BUILD
+#define CONFIG_CMD_UBIFS
+#endif
+
+#define CONFIG_CMD_UBI
+#define CONFIG_RBTREE
+#define CONFIG_MTD_DEVICE
+#define CONFIG_MTD_PARTITIONS
+#define CONFIG_CMD_MTDPARTS
+#define CONFIG_LZO
+#define CONFIG_MTD_UBI_WL_THRESHOLD 4096
+#define CONFIG_MTD_UBI_BEB_LIMIT 20
+
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
 #define CONFIG_SYS_NAND_PAGE_COUNT	(CONFIG_SYS_NAND_BLOCK_SIZE / \
 					 CONFIG_SYS_NAND_PAGE_SIZE)

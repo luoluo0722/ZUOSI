@@ -3,7 +3,7 @@ The project for ZUOSI
 
 1.Build environmenta
 a.Ubuntu 16.04 LTS
-b.sudo apt-get install git build-essential python diffstat texinfo gawk chrpath dos2unix wget unzip socat doxygen libc6:i386 libncurses5:i386 libstdc++6:i386 libz1
+b.sudo apt-get install git build-essential python diffstat texinfo gawk chrpath dos2unix wget unzip socat doxygen libc6:i386 libncurses5:i386 libstdc++6:i386 libz1 mtd-utils
 
 2.Build
 Enter the source root, and make

@@ -2,8 +2,9 @@
 
 MAKE_JOBS ?= 1
 
-all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg
-clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean
+all: linux u-boot-spl linux-dtbs busybox ncurses ubifsimg
+#all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg
+clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 
 # Kernel build targets
@@ -50,6 +51,10 @@ u-boot: linux-dtbs
 	@echo ===================================
 	@echo    Installing U-boot
 	@echo ===================================
+	@if [ ! -d $(OUT_DIR) ] ; then \
+		echo "The extracted target filesystem directory doesn't exist."; \
+	        pushd $(TI_SDK_PATH);mkdir -p out;popd; \
+        fi
 	cp $(UBOOT_SRC_DIR)/MLO $(TI_SDK_PATH)/out/
 	cp $(UBOOT_SRC_DIR)/u-boot.img $(TI_SDK_PATH)/out/
 	cp $(UBOOT_SRC_DIR)/spl/u-boot-spl.bin $(TI_SDK_PATH)/out/
@@ -99,6 +104,10 @@ busybox:
 	@echo     Building the busybox for rootfs
 	@echo =====================================
 	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE)
+	@if [ ! -d $(ROOTFS) ] ; then \
+		echo "The extracted target filesystem directory doesn't exist."; \
+	        pushd $(OUT_DIR);mkdir -p rootfs;popd; \
+        fi
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
 	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) install
 	cp -r $(BUSYBOX_DIR)/examples/bootfloppy/etc/* $(ROOTFS)/etc
@@ -133,6 +142,8 @@ mysql:
 	@echo =====================================
 	pushd $(MYSQL_SRC);PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) ./configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(TI_SDK_PATH)/out/intermediate/ncurses-5.9/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
+	pushd $(MYSQL_SRC)/extra;cp comp_err_x86 comp_err;popd
+	pushd $(MYSQL_SRC)/scripts;cp comp_sql_x86 comp_sql;popd
 	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC)	
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
 	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC) install DESTDIR=$(TI_SDK_PATH)/out/intermediate/mysql-5.1.73
@@ -156,6 +167,12 @@ mysql_clean:
 	@echo =======================================
 	$(MAKE) -C $(MYSQL_SRC) clean
 	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/*
+
+clean_out_dir:
+	@echo =======================================
+	@echo     Cleaning out_dir
+	@echo =======================================
+	rm -rf $(OUT_DIR)
 
 ubifsimg:
 	pushd $(OUT_DIR);mkfs.ubifs -r rootfs -m 2048 -e 126976 -c 992 -o am335xubifs.img;ubinize -o am335xubi.img -m 2048 -p 128KiB -s 512 -O 2048 $(CONFIG_DIR)/ubinize.cfg;popd

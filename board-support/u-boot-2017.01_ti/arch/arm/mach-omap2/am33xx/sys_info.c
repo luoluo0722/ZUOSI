@@ -70,7 +70,6 @@ u32 get_sysboot_value(void)
 
 u32 get_sys_clk_index(void)
 {
-#if 0
 	struct ctrl_stat *ctrl = (struct ctrl_stat *)CTRL_BASE;
 	u32 ind = readl(&ctrl->statusreg);
 
@@ -84,8 +83,6 @@ u32 get_sys_clk_index(void)
 #endif
 		return ((ind & CTRL_SYSBOOT_15_14_MASK) >>
 			CTRL_SYSBOOT_15_14_SHIFT);
-#endif
-	return 1;//24M
 }
 
 

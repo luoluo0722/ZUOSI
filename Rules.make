@@ -14,8 +14,7 @@ UBOOT_MACHINE=am335x_evm_config
 export TI_SDK_PATH=$(shell pwd)
 
 export OUT_DIR=$(TI_SDK_PATH)/out
-export KERNEL_OBJ=$(OUT_DIR)/kernel_obj
-export UBOOT_OBJ=$(OUT_DIR)/uboot_obj
+
 export CONFIG_DIR=$(TI_SDK_PATH)/configs
 
 #root of the target file system for installing applications
@@ -26,7 +25,7 @@ export ROOTFS=$(OUT_DIR)/rootfs
 #export LINUX_DEVKIT_PATH=$(TI_SDK_PATH)/linux-devkit
 
 #Cross compiler prefix
-export CROSS_COMPILE=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export CROSS_COMPILE=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
 
 #Default CC value to be used when cross compiling.  This is so that the
 #GNU Make default of "cc" is not used to point to the host compiler

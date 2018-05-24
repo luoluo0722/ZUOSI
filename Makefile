@@ -56,19 +56,9 @@ u-boot: linux-dtbs
 	@echo ===================================
 	@echo    Installing U-boot
 	@echo ===================================
-<<<<<<< HEAD
-	@if [ ! -d $(OUT_DIR) ] ; then \
-		echo "The extracted target filesystem directory doesn't exist."; \
-	        pushd $(TI_SDK_PATH);mkdir -p out;popd; \
-        fi
-	cp $(UBOOT_SRC_DIR)/MLO $(TI_SDK_PATH)/out/
-	cp $(UBOOT_SRC_DIR)/u-boot.img $(TI_SDK_PATH)/out/
-	cp $(UBOOT_SRC_DIR)/spl/u-boot-spl.bin $(TI_SDK_PATH)/out/
-=======
 	cp $(UBOOT_OBJ)/MLO $(OUT_DIR)
 	cp $(UBOOT_OBJ)/u-boot.img $(OUT_DIR)
 	cp $(UBOOT_OBJ)/spl/u-boot-spl.bin $(OUT_DIR)
->>>>>>> d59cfaf78a815cfe3fb49eaafeac7fb529ecd4c9
 
 u-boot_clean:
 	@echo ===================================
@@ -159,13 +149,7 @@ mysql:
 	@echo =====================================
 	pushd $(MYSQL_SRC);PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) ./configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(TI_SDK_PATH)/out/intermediate/ncurses-5.9/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-<<<<<<< HEAD
-	pushd $(MYSQL_SRC)/extra;cp comp_err_x86 comp_err;popd
-	pushd $(MYSQL_SRC)/scripts;cp comp_sql_x86 comp_sql;popd
-	PATH=$(TI_SDK_PATH)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC)	
-=======
 	PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC)	
->>>>>>> d59cfaf78a815cfe3fb49eaafeac7fb529ecd4c9
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
 	PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC) install DESTDIR=$(TI_SDK_PATH)/out/intermediate/mysql-5.1.73
 	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr/lib/mysql/*.a

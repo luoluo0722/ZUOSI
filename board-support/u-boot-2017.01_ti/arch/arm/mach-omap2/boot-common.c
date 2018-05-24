@@ -179,7 +179,7 @@ u32 spl_boot_mode(const u32 boot_device)
 void spl_board_init(void)
 {
 	/* Prepare console output */
-	preloader_console_init();
+	//preloader_console_init(); move to early
 
 #if defined(CONFIG_SPL_NAND_SUPPORT) || defined(CONFIG_SPL_ONENAND_SUPPORT)
 	gpmc_init();

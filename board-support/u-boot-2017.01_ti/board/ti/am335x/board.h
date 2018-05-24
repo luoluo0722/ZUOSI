@@ -46,7 +46,8 @@ static inline int board_is_beaglebonex(void)
 
 static inline int board_is_evm_sk(void)
 {
-	return board_ti_is("A335X_SK");
+	//return board_ti_is("A335X_SK");
+	return true;
 }
 
 static inline int board_is_idk(void)

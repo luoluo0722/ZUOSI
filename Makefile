@@ -15,6 +15,18 @@ linux: linux-dtbs
 	$(MAKE) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) $(DEFCONFIG)
 	$(MAKE) -j $(MAKE_JOBS) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage
 	$(MAKE) -j $(MAKE_JOBS) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) modules
+	install -d $(OUT_DIR)
+	install $(KERNEL_OBJ)/arch/arm/boot/zImage $(OUT_DIR)
+	install $(KERNEL_OBJ)/vmlinux $(OUT_DIR)
+	install $(KERNEL_OBJ)/System.map $(OUT_DIR)
+	$(MAKE) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) INSTALL_MOD_PATH=$(ROOTFS) INSTALL_MOD_STRIP=$(INSTALL_MOD_STRIP) modules_install
+
+linux_config:
+	@echo =================================
+	@echo     Configure the Linux Kernel
+	@echo =================================
+	$(MAKE) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) $(DEFCONFIG)
+	$(MAKE) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) menuconfig
 
 linux_install: linux-dtbs_install
 	@echo ===================================
@@ -110,22 +122,29 @@ busybox:
 	@echo =====================================
 	@echo     Building the busybox for rootfs
 	@echo =====================================
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE)
-	@if [ ! -d $(ROOTFS) ] ; then \
-		echo "The extracted target filesystem directory doesn't exist."; \
-	        pushd $(OUT_DIR);mkdir -p rootfs;popd; \
-        fi
+	install -d $(ROOTFS)
+	install -d $(BUSYBOX_OBJ)
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) install
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) zuosi_defconfig
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ)
+	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) install
 	cp -r $(BUSYBOX_DIR)/examples/bootfloppy/etc/* $(ROOTFS)/etc
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/lib/*so* $(ROOTFS)/lib/
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*so* $(ROOTFS)/lib/
+
+busybox_config:
+	@echo =====================================
+	@echo     Building the busybox for rootfs
+	@echo =====================================
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) zuosi_defconfig
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) menuconfig
 	
 busybox_clean:
 	@echo =======================================
 	@echo     Cleaning the busybox
 	@echo =======================================
-	$(MAKE) -C $(BUSYBOX_DIR) clean
+	$(MAKE) -C $(BUSYBOX_DIR) O=$(BUSYBOX_OBJ) mrproper
 	rm -rf $(ROOTFS)/*
 
 ncurses:
@@ -180,4 +199,4 @@ clean_out_dir:
 	rm -rf $(OUT_DIR)
 
 ubifsimg:
-	pushd $(OUT_DIR);mkfs.ubifs -r rootfs -m 2048 -e 126976 -c 992 -o am335xubifs.img;ubinize -o am335xubi.img -m 2048 -p 128KiB -s 512 -O 2048 $(CONFIG_DIR)/ubinize.cfg;popd
+	pushd $(OUT_DIR);mkfs.ubifs -r rootfs -o am335xubifs.img $(MKUBIFS_ARGS);ubinize -o am335xubi.img $(UBINIZE_ARGS) $(CONFIG_DIR)/ubinize.cfg;popd

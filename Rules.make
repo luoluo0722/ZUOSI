@@ -15,6 +15,7 @@ export TI_SDK_PATH=$(shell pwd)
 
 export OUT_DIR=$(TI_SDK_PATH)/out
 export KERNEL_OBJ=$(OUT_DIR)/kernel_obj
+export BUSYBOX_OBJ=$(OUT_DIR)/busybox_obj
 export UBOOT_OBJ=$(OUT_DIR)/uboot_obj
 export CONFIG_DIR=$(TI_SDK_PATH)/configs
 
@@ -56,6 +57,9 @@ EXEC_DIR=/home/zte/ti-processor-sdk-linux-am335x-evm-04.02.00.09/targetNFS/home/
 
 export NCURSES_SRC=$(TI_SDK_PATH)/apps/ncurses-5.9
 export MYSQL_SRC=$(TI_SDK_PATH)/apps/mysql-5.1.73
+
+export MKUBIFS_ARGS= -F -m 4096 -e 253952 -c 2650
+export UBINIZE_ARGS= -m 4096 -p 256KiB -s 4096 -O 4096
 
 MAKE_JOBS=2
 

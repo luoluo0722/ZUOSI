@@ -593,5 +593,12 @@ config TILE_SROM
 
 source "drivers/char/xillybus/Kconfig"
 
+config FPGA_PRINTER_CONTROLLER
+	bool "FPGA PRINTER CONTROLLER"
+	default n
+	---help---
+	  This device provides character-level read-write access
+	  to the FPGA PRINTER CONTROLLER.
+
 endmenu
 

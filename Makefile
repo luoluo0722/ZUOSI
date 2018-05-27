@@ -125,10 +125,10 @@ busybox:
 	install -d $(ROOTFS)
 	install -d $(BUSYBOX_OBJ)
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) zuosi_defconfig
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ)
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) zuosi_defconfig
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS)
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) install
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) install CONFIG_PREFIX=$(ROOTFS)
 	cp -r $(BUSYBOX_DIR)/examples/bootfloppy/etc/* $(ROOTFS)/etc
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/lib/*so* $(ROOTFS)/lib/
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*so* $(ROOTFS)/lib/
@@ -137,14 +137,14 @@ busybox_config:
 	@echo =====================================
 	@echo     Building the busybox for rootfs
 	@echo =====================================
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) zuosi_defconfig
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) menuconfig
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) zuosi_defconfig
+	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) menuconfig
 	
 busybox_clean:
 	@echo =======================================
 	@echo     Cleaning the busybox
 	@echo =======================================
-	$(MAKE) -C $(BUSYBOX_DIR) O=$(BUSYBOX_OBJ) mrproper
+	$(MAKE) -C $(BUSYBOX_DIR) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) mrproper
 	rm -rf $(ROOTFS)/*
 
 ncurses:

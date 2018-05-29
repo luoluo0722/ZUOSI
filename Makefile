@@ -7,6 +7,14 @@ all: linux u-boot-spl linux-dtbs busybox ncurses ubifsimg
 clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 
+make_init:
+	install -d $(ROOTFS)
+	install -d $(KERNEL_OBJ)
+	install -d $(UBOOT_OBJ)
+	install -d $(NCURSES_OBJ)
+	install -d $(BUSYBOX_OBJ)
+	install -d $(MYSQL_OBJ)
+
 # Kernel build targets
 linux: linux-dtbs
 	@echo =================================
@@ -118,12 +126,11 @@ linux-dtbs_clean:
 	@echo "Nothing to do"
 	rm -rf $(OUT_DIR)/am335x-evm.dtb
 
-busybox:
+busybox: make_init
 	@echo =====================================
 	@echo     Building the busybox for rootfs
 	@echo =====================================
-	install -d $(ROOTFS)
-	install -d $(BUSYBOX_OBJ)
+
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
 	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) zuosi_defconfig
 	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS)
@@ -133,7 +140,7 @@ busybox:
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/lib/*so* $(ROOTFS)/lib/
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*so* $(ROOTFS)/lib/
 
-busybox_config:
+busybox_config: make_init
 	@echo =====================================
 	@echo     Building the busybox for rootfs
 	@echo =====================================
@@ -147,34 +154,35 @@ busybox_clean:
 	$(MAKE) -C $(BUSYBOX_DIR) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) mrproper
 	rm -rf $(ROOTFS)/*
 
-ncurses:
+ncurses:make_init
 	@echo =====================================
 	@echo     Building the ncurses for mysql
 	@echo =====================================
-	pushd $(NCURSES_SRC);PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) ./configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static;popd
-	PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(NCURSES_SRC)
-	PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(NCURSES_SRC) install DESTDIR=$(TI_SDK_PATH)/out/intermediate/ncurses-5.9
+	pushd $(NCURSES_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) $(NCURSES_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static;popd
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ) install DESTDIR=$(NCURSES_DESTDIR)
 	
 ncurses_clean:
 	@echo =======================================
 	@echo     Cleaning the ncurses
 	@echo =======================================
-	$(MAKE) -C $(NCURSES_SRC) clean
-	rm -rf $(TI_SDK_PATH)/out/intermediate/ncurses-5.9/*
+	$(MAKE) -C $(NCURSES_OBJ) distclean
+	rm -rf $(NCURSES_DESTDIR)
 
-mysql:
+mysql: make_init
 	@echo =====================================
 	@echo     Building the mysql
 	@echo =====================================
-	pushd $(MYSQL_SRC);PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) ./configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(TI_SDK_PATH)/out/intermediate/ncurses-5.9/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
+	pushd $(MYSQL_SRC);PATH=$(GCC_BIN_PATH):$(PATH) $(MYSQL_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(NCURSES_DESTDIR)/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
+	#cp $(MYSQL_SRC)/scripts/*.sql $(MYSQL_OBJ)/scripts/
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC)	
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_SRC)
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin:$(PATH) $(MAKE) -C $(MYSQL_SRC) install DESTDIR=$(TI_SDK_PATH)/out/intermediate/mysql-5.1.73
-	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr/lib/mysql/*.a
-	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr/lib/mysql/plugin/*.a
-	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr/mysql-test
-	cp -ar $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/usr $(ROOTFS)/
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_SRC) install DESTDIR=$(MYSQL_DESTDIR)
+	rm -rf $(MYSQL_DESTDIR)/usr/lib/mysql/*.a
+	rm -rf $(MYSQL_DESTDIR)/usr/lib/mysql/plugin/*.a
+	rm -rf $(MYSQL_DESTDIR)/usr/mysql-test
+	cp -ar $(MYSQL_DESTDIR)/usr $(ROOTFS)/
 	cp $(MYSQL_SRC)/support-files/my-medium.cnf $(ROOTFS)/etc/my.cnf
 	cp $(MYSQL_SRC)/support-files/mysql.server $(ROOTFS)/etc/init.d/mysqld
 	chmod +x $(ROOTFS)/etc/init.d/mysqld

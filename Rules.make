@@ -13,21 +13,17 @@ UBOOT_MACHINE=am335x_evm_config
 #Points to the root of the TI SDK
 export TI_SDK_PATH=$(shell pwd)
 
-export OUT_DIR=$(TI_SDK_PATH)/out
-export KERNEL_OBJ=$(OUT_DIR)/kernel_obj
-export BUSYBOX_OBJ=$(OUT_DIR)/busybox_obj
-export UBOOT_OBJ=$(OUT_DIR)/uboot_obj
 export CONFIG_DIR=$(TI_SDK_PATH)/configs
-
-#root of the target file system for installing applications
-export ROOTFS=$(OUT_DIR)/rootfs
 
 #Points to the root of the Linux libraries and headers matching the
 #demo file system.
 #export LINUX_DEVKIT_PATH=$(TI_SDK_PATH)/linux-devkit
 
 #Cross compiler prefix
-export CROSS_COMPILE=$(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export TOOLS_DIR=$(TI_SDK_PATH)/tools
+export GCC_DIR=$(TOOLS_DIR)/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf
+export GCC_BIN_PATH=$(GCC_DIR)/bin
+export CROSS_COMPILE=$(GCC_BIN_PATH)/arm-linux-gnueabihf-
 
 #Default CC value to be used when cross compiling.  This is so that the
 #GNU Make default of "cc" is not used to point to the host compiler
@@ -50,13 +46,26 @@ CFLAGS= -march=armv7-a -marm -mfpu=neon  -mfloat-abi=hard
 #Strip modules when installing to conserve disk space
 INSTALL_MOD_STRIP=1
 
-SDK_PATH_TARGET=$(TI_SDK_PATH)/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi/
+#SDK_PATH_TARGET=$(TI_SDK_PATH)/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi/
 
 # Set EXEC_DIR to install example binaries
-EXEC_DIR=/home/zte/ti-processor-sdk-linux-am335x-evm-04.02.00.09/targetNFS/home/root/am335x-evm
+#EXEC_DIR=/home/zte/ti-processor-sdk-linux-am335x-evm-04.02.00.09/targetNFS/home/root/am335x-evm
 
 export NCURSES_SRC=$(TI_SDK_PATH)/apps/ncurses-5.9
 export MYSQL_SRC=$(TI_SDK_PATH)/apps/mysql-5.1.73
+
+#root of the target file system for installing applications
+export ROOTFS=$(OUT_DIR)/rootfs
+export OUT_DIR=$(TI_SDK_PATH)/out
+export INTERMEDIATES_DIR=$(OUT_DIR)/intermediates
+export KERNEL_OBJ=$(INTERMEDIATES_DIR)/kernel_obj
+export BUSYBOX_OBJ=$(INTERMEDIATES_DIR)/busybox_obj
+export UBOOT_OBJ=$(INTERMEDIATES_DIR)/uboot_obj
+export MYSQL_OBJ=$(INTERMEDIATES_DIR)/mysql_obj
+export NCURSES_OBJ=$(INTERMEDIATES_DIR)/ncurses_obj
+
+export NCURSES_DESTDIR=$(OUT_DIR)/ncurses-5.9
+export MYSQL_DESTDIR=$(OUT_DIR)/mysql-5.1.73
 
 export MKUBIFS_ARGS= -F -m 4096 -e 253952 -c 2650
 export UBINIZE_ARGS= -m 4096 -p 256KiB -s 4096 -O 4096

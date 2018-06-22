@@ -67,8 +67,8 @@ export NCURSES_OBJ=$(INTERMEDIATES_DIR)/ncurses_obj
 export NCURSES_DESTDIR=$(OUT_DIR)/ncurses-5.9
 export MYSQL_DESTDIR=$(OUT_DIR)/mysql-5.1.73
 
-export MKUBIFS_ARGS= -F -m 4096 -e 253952 -c 2650
-export UBINIZE_ARGS= -m 4096 -p 256KiB -s 4096 -O 4096
+export MKUBIFS_ARGS= -F -m 2048 -e 124KiB -c 2650
+export UBINIZE_ARGS= -m 2048 -p 128KiB -s 2048
 
 MAKE_JOBS=2
 

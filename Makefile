@@ -2,8 +2,7 @@
 
 MAKE_JOBS ?= 1
 
-all: linux u-boot-spl linux-dtbs busybox ncurses ubifsimg
-#all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg
+all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg
 clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 
@@ -106,6 +105,8 @@ linux-dtbs:
 	$(MAKE) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) $(DEFCONFIG)
 	$(MAKE) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) headers_install
 	$(MAKE) -j $(MAKE_JOBS) -C $(LINUX_KERNEL_SRC_DIR) O=$(KERNEL_OBJ) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) am335x-evm.dtb
+	install -d $(OUT_DIR)
+	cp -f $(KERNEL_OBJ)/arch/arm/boot/dts/am335x-evm.dtb $(OUT_DIR)
 
 linux-dtbs_install:
 	@echo =======================================

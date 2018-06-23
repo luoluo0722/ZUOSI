@@ -170,7 +170,7 @@
 &am33xx_pinmux {
 	pinctrl-names = "default";
 	pinctrl-0 = <&ddr3_vtt_toggle &clkout2_pin>;
-	
+
 	jtag_pins_default: jtag_pins_default {
 		pinctrl-single,pins = <
 			AM33XX_IOPAD(0x9d0, PIN_INPUT | MUX_MODE0 ) /* (C11) TMS.TMS */
@@ -182,7 +182,7 @@
 			AM33XX_IOPAD(0x9e8, PIN_INPUT | MUX_MODE0 ) /* (B14) EMU1.EMU1 */
 		>;
 	};
-	
+
 	gpio2_pins_default: gpio2_pins_default {
 		pinctrl-single,pins = <
 			AM33XX_IOPAD(0x8e0, PIN_INPUT | MUX_MODE7 ) /* (U5) lcd_vsync.gpio2[22] */
@@ -190,7 +190,7 @@
 			AM33XX_IOPAD(0x8e8, PIN_INPUT | MUX_MODE7 ) /* (V5) lcd_pclk.gpio2[24] */
 		>;
 	};
-	
+
 	gpio3_pins_default: gpio3_pins_default {
 		pinctrl-single,pins = <
 			AM33XX_IOPAD(0x990, PIN_INPUT | MUX_MODE7 ) /* (A13) mcasp0_aclkx.gpio3[14] */
@@ -203,6 +203,7 @@
 			AM33XX_IOPAD(0x9ac, PIN_INPUT | MUX_MODE7 ) /* (A14) mcasp0_ahclkx.gpio3[21] */
 		>;
 	};
+
 	gpmc_pins_default: gpmc_pins_default {
 		pinctrl-single,pins = <
 			AM33XX_IOPAD(0x86c, PIN_OUTPUT | MUX_MODE0 ) /* (V17) gpmc_a11.gpmc_a11 */
@@ -294,7 +295,7 @@
 			AM33XX_IOPAD(0x984, PIN_OUTPUT_PULLDOWN | MUX_MODE0)	/* uart1_txd.uart1_txd */
 		>;
 	};
-	
+
 	uart2_pins: pinmux_uart2_pins {
 		pinctrl-single,pins = <
 			AM33XX_IOPAD(0x950, PIN_INPUT | MUX_MODE1 ) /* (A17) spi0_sclk.uart2_rxd */
@@ -340,7 +341,7 @@
 	//		AM33XX_IOPAD(0x964, MUX_MODE0)	/* eCAP0_in_PWM0_out.eCAP0_in_PWM0_out */
 	//	>;
 	//};
-	
+
 	ddr3_vtt_toggle: ddr3_vtt_toggle {
 		pinctrl-single,pins = <
 			AM33XX_IOPAD(0x964, PIN_OUTPUT | MUX_MODE7)	/* ecap0_in_pwm0_out.gpio0_7 */
@@ -463,7 +464,7 @@
 	//		AM33XX_IOPAD(0x944, PIN_INPUT_PULLDOWN | MUX_MODE7)
 	//	>;
 	//};
-	
+
 	spi_pins_default: spi_pins_default {
 		pinctrl-single,pins = <
 			AM33XX_IOPAD(0x9b0, PIN_INPUT | MUX_MODE4 ) /* (A15) xdma_event_intr0.spi1_cs1 */
@@ -616,7 +617,8 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&gpmc_pins_default>;
-	ranges = <0 0 0x08000000 0x8000000>;	/* CS0: 16MB for NAND */
+	ranges = <0 0 0x08000000 0x8000000 /* CS0: 16MB for NAND */
+				1 0 0x10000000 0x8000000>;	/* CS1: 128MB for FPGA */
 	nand@0,0 {
 		compatible = "ti,omap2-nand";
 		reg = <0 0 0x8000000>; /* CS0, offset 0, IO size 4 */
@@ -695,6 +697,39 @@
 			label = "NAND.file-system";
 			reg = <0x00A00000 0x0F600000>;
 		};
+	};
+	fpga_printer_controller@1,0 {
+		compatible = "zuosi,omap2-fpga-printer-ctl";
+		reg = <1 0 0x8000000>; /* CS1, offset 0, IO size 4 */
+		interrupt-parent = <&gpmc>;
+		interrupts = <0 IRQ_TYPE_NONE>, /* fifoevent */
+			     <1 IRQ_TYPE_NONE>;	/* termcount */
+		rb-gpios = <&gpmc 0 GPIO_ACTIVE_HIGH>; /* gpmc_wait0 */
+		ti,nand-xfer-type = "prefetch-dma";
+		ti,nand-ecc-opt = "bch8";
+		ti,elm-id = <&elm>;
+		nand-bus-width = <8>;
+		gpmc,device-width = <1>;
+		gpmc,sync-clk-ps = <0>;
+		gpmc,cs-on-ns = <0>;
+		gpmc,cs-rd-off-ns = <50>;
+		gpmc,cs-wr-off-ns = <50>;
+		gpmc,adv-on-ns = <10>;
+		gpmc,adv-rd-off-ns = <40>;
+		gpmc,adv-wr-off-ns = <50>;
+		gpmc,we-on-ns = <10>;
+		gpmc,we-off-ns = <40>;
+		gpmc,oe-on-ns = <10>;
+		gpmc,oe-off-ns = <60>;
+		gpmc,access-ns = <70>;
+		gpmc,rd-cycle-ns = <90>;
+		gpmc,wr-cycle-ns = <90>;
+		gpmc,bus-turnaround-ns = <0>;
+		gpmc,cycle2cycle-delay-ns = <0>;
+		gpmc,clk-activation-ns = <0>;
+		gpmc,wait-monitoring-ns = <0>;
+		gpmc,wr-access-ns = <40>;
+		gpmc,wr-data-mux-bus-ns = <0>;
 	};
 };
 
@@ -811,11 +846,6 @@
 
 &cpsw_emac0 {
 	phy_id = <&davinci_mdio>, <0>;
-	phy-mode = "rgmii-txid";
-};
-
-&cpsw_emac1 {
-	phy_id = <&davinci_mdio>, <1>;
 	phy-mode = "rgmii-txid";
 };
 

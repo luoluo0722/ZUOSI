@@ -90,13 +90,7 @@
 	func(DHCP, dhcp, na)
 
 #define CONFIG_BOOTCOMMAND \
-	"if test ${boot_fit} -eq 1; then "	\
-		"run update_to_fit;"	\
-	"fi;"	\
-	"run findfdt; " \
-	"run init_console; " \
-	"run envboot; " \
-	"run distro_bootcmd"
+	"if mmc dev 0; then run xflash; fi; run nandboot"
 
 #include <config_distro_bootcmd.h>
 

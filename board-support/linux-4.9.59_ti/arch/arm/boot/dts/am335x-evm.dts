@@ -617,8 +617,8 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&gpmc_pins_default>;
-	ranges = <0 0 0x08000000 0x8000000 /* CS0: 16MB for NAND */
-				1 0 0x10000000 0x8000000>;	/* CS1: 128MB for FPGA */
+	ranges = <0 0 0x08000000 0x8000000 /* CS0: 128MB for NAND */
+				2 0 0x10000000 0x8000000>;	/* CS1: 128MB for FPGA */
 	nand@0,0 {
 		compatible = "ti,omap2-nand";
 		reg = <0 0 0x8000000>; /* CS0, offset 0, IO size 4 */
@@ -700,36 +700,44 @@
 	};
 	fpga_printer_controller@1,0 {
 		compatible = "zuosi,omap2-fpga-printer-ctl";
-		reg = <1 0 0x8000000>; /* CS1, offset 0, IO size 4 */
+		reg = <2 0 0x8000000>; /* CS1, offset 0, IO size 4 */
 		interrupt-parent = <&gpmc>;
 		interrupts = <0 IRQ_TYPE_NONE>, /* fifoevent */
 			     <1 IRQ_TYPE_NONE>;	/* termcount */
 		rb-gpios = <&gpmc 0 GPIO_ACTIVE_HIGH>; /* gpmc_wait0 */
 		ti,nand-xfer-type = "prefetch-dma";
-		ti,nand-ecc-opt = "bch8";
-		ti,elm-id = <&elm>;
-		nand-bus-width = <8>;
+		bank-width = <2>;
 		gpmc,device-width = <1>;
-		gpmc,sync-clk-ps = <0>;
-		gpmc,cs-on-ns = <0>;
-		gpmc,cs-rd-off-ns = <50>;
-		gpmc,cs-wr-off-ns = <50>;
-		gpmc,adv-on-ns = <10>;
-		gpmc,adv-rd-off-ns = <40>;
-		gpmc,adv-wr-off-ns = <50>;
-		gpmc,we-on-ns = <10>;
-		gpmc,we-off-ns = <40>;
-		gpmc,oe-on-ns = <10>;
-		gpmc,oe-off-ns = <60>;
-		gpmc,access-ns = <70>;
-		gpmc,rd-cycle-ns = <90>;
-		gpmc,wr-cycle-ns = <90>;
-		gpmc,bus-turnaround-ns = <0>;
-		gpmc,cycle2cycle-delay-ns = <0>;
-		gpmc,clk-activation-ns = <0>;
-		gpmc,wait-monitoring-ns = <0>;
-		gpmc,wr-access-ns = <40>;
-		gpmc,wr-data-mux-bus-ns = <0>;
+		gpmc,mux-add-data = <0>;
+		gpmc,wait-pin = <0>;
+		gpmc,burst-length = <4>;
+		gpmc,cycle2cycle-samecsen = <1>;
+		gpmc,cycle2cycle-diffcsen = <1>;
+		gpmc,cs-on-ns = <10>; /* 1 ns - 10 ns; 1 ticks */
+		gpmc,cs-rd-off-ns = <70>; /* 61 ns - 70 ns; 7 ticks */
+		gpmc,cs-wr-off-ns = <70>; /* 61 ns - 70 ns; 7 ticks */
+		gpmc,adv-on-ns = <10>; /* 1 ns - 10 ns; 1 ticks */
+		gpmc,adv-rd-off-ns = <30>; /* 21 ns - 30 ns; 3 ticks */
+		gpmc,adv-wr-off-ns = <30>; /* 21 ns - 30 ns; 3 ticks */
+		gpmc,adv-aad-mux-on-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,adv-aad-mux-rd-off-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,adv-aad-mux-wr-off-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,oe-on-ns = <40>; /* 31 ns - 40 ns; 4 ticks */
+		gpmc,oe-off-ns = <60>; /* 51 ns - 60 ns; 6 ticks */
+		gpmc,oe-aad-mux-on-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,oe-aad-mux-off-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,we-on-ns = <40>; /* 31 ns - 40 ns; 4 ticks */
+		gpmc,we-off-ns = <60>; /* 51 ns - 60 ns; 6 ticks */
+		gpmc,rd-cycle-ns = <120>; /* 111 ns - 120 ns; 12 ticks */
+		gpmc,wr-cycle-ns = <120>; /* 111 ns - 120 ns; 12 ticks */
+		gpmc,access-ns = <100>; /* 91 ns - 100 ns; 10 ticks */
+		gpmc,page-burst-access-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,bus-turnaround-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,cycle2cycle-delay-ns = <20>; /* 11 ns - 20 ns; 2 ticks */
+		gpmc,wait-monitoring-ns = <0>; /* 0 ns - 0 ns; 0 ticks */
+		gpmc,clk-activation-ns = <0>; /* 0 ns - 0 ns; 0 ticks */
+		gpmc,wr-data-mux-bus-ns = <50>; /* 41 ns - 50 ns; 5 ticks */
+		gpmc,wr-access-ns = <110>; /* 101 ns - 110 ns; 11 ticks */
 	};
 };
 

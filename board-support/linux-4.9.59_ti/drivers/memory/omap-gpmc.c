@@ -1731,7 +1731,7 @@ int gpmc_cs_program_settings(int cs, struct gpmc_settings *p)
 	u32 config1;
 
 	if ((!p->device_width) || (p->device_width > GPMC_DEVWIDTH_16BIT)) {
-		pr_err("%s: invalid width %d!", __func__, p->device_width);
+		pr_err("%s: invalid width %d!\n", __func__, p->device_width);
 		return -EINVAL;
 	}
 
@@ -2085,8 +2085,11 @@ static int gpmc_probe_generic_child(struct platform_device *pdev,
 	} else {
 		ret = of_property_read_u32(child, "bank-width",
 					   &gpmc_s.device_width);
-		if (ret < 0)
+		if (ret < 0){
+			dev_err(&pdev->dev, "%s: missing 'bank-width'\n",
+				child->name);
 			goto err;
+		}
 	}
 
 	/* Reserve wait pin if it is required and valid */
@@ -2105,8 +2108,11 @@ static int gpmc_probe_generic_child(struct platform_device *pdev,
 	gpmc_cs_show_timings(cs, "before gpmc_cs_program_settings");
 
 	ret = gpmc_cs_program_settings(cs, &gpmc_s);
-	if (ret < 0)
+	if (ret < 0){
+		dev_err(&pdev->dev, "failed to set program settings for: %s\n",
+			child->name);
 		goto err_cs;
+	}
 
 	ret = gpmc_cs_set_timings(cs, &gpmc_t, &gpmc_s);
 	if (ret) {

@@ -34,7 +34,7 @@ Do a global replace of 'fpga' with your driver name.
 
 
 #define	DRIVER_NAME	"omap2-fpga-printer-ctl"
-#define	DEVICE_NAME	"omap2-fpga-printer-ctl"
+#define	DEVICE_NAME	"fpga_printer_ctl"
 
 #define USER_BUFF_SIZE 128
 

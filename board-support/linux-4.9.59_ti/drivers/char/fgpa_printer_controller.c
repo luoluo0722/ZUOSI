@@ -1,7 +1,7 @@
 /*
-Char device driver fpga.
-Do a global replace of 'fpga' with your driver name.
-*/
+ * Char device driver fpga.
+ * Do a global replace of 'fpga' with your driver name.
+ */
 
 #include <linux/platform_device.h>
 #include <linux/dmaengine.h>
@@ -22,94 +22,43 @@ Do a global replace of 'fpga' with your driver name.
 #include <linux/of_device.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
-
 #include <linux/mtd/nand_bch.h>
 #include <linux/platform_data/elm.h>
-
 #include <linux/omap-gpmc.h>
 
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/uaccess.h>
 
-
 #define	DRIVER_NAME	"omap2-fpga-printer-ctl"
 #define	DEVICE_NAME	"fpga_printer_ctl"
 
 #define USER_BUFF_SIZE 128
 
-
 struct omap_fpga_printer_ctl_dev {
 	dev_t dev_id;
 	struct cdev cdev;
-	struct platform_device		*pdev;
+	struct platform_device *pdev;
 	const char *name;
 	struct semaphore sem;
 	struct class *drv_class;
-	int				gpmc_cs;
+	int gpmc_cs;
 	char *user_buff;
-	unsigned long			phys_base;
+	unsigned long phys_base;
 	void __iomem *IO_ADDR_R;
 	void __iomem *IO_ADDR_W;
 };
 
-#if 0
-static struct fpga_dev fpga_dev;
-
-unsigned long mem_base;
-
-
-/* GPMC register offsets */
-#define GPMC_REVISION 0x00
-#define GPMC_SYSCONFIG 0x10
-#define GPMC_SYSSTATUS 0x14
-#define GPMC_IRQSTATUS 0x18
-#define GPMC_IRQENABLE 0x1c
-#define GPMC_TIMEOUT_CONTROL 0x40
-#define GPMC_ERR_ADDRESS 0x44
-#define GPMC_ERR_TYPE 0x48
-#define GPMC_CONFIG 0x50
-#define GPMC_STATUS 0x54
-#define GPMC_PREFETCH_CONFIG1 0x1e0
-#define GPMC_PREFETCH_CONFIG2 0x1e4
-#define GPMC_PREFETCH_CONTROL 0x1ec
-#define GPMC_PREFETCH_STATUS 0x1f0
-#define GPMC_ECC_CONFIG 0x1f4
-#define GPMC_ECC_CONTROL 0x1f8
-#define GPMC_ECC_SIZE_CONFIG 0x1fc
-#define GPMC_ECC1_RESULT 0x200
-#define GPMC_ECC_BCH_RESULT_0 0x240
-
-#define GPMC_BASE_ADDR 0x50000000
-#define GPMC_CS 1
-#define GPMC_CS0 0x60
-#define GPMC_CS_SIZE 0x30
-#define STNOR_GPMC_CONFIG1 0x28601000
-#define STNOR_GPMC_CONFIG2 0x00011001
-#define STNOR_GPMC_CONFIG3 0x00020201
-#define STNOR_GPMC_CONFIG4 0x08031003
-#define STNOR_GPMC_CONFIG5 0x000f1111
-#define STNOR_GPMC_CONFIG6 0x0f030080
-
-static const u32 gpmc_nor[7] = {
-	STNOR_GPMC_CONFIG1,
-	STNOR_GPMC_CONFIG2,
-	STNOR_GPMC_CONFIG3,
-	STNOR_GPMC_CONFIG4,
-	STNOR_GPMC_CONFIG5,
-	STNOR_GPMC_CONFIG6, 0
-};
-#endif
-
 static ssize_t omap_fpga_prienter_ctl_write(struct file *filp, const char __user *buff,
 size_t count, loff_t *f_pos)
 {
-	ssize_t status;
-	size_t len = USER_BUFF_SIZE - 1;
-	int i;
-	unsigned int tmp;
+	ssize_t write_num = 0;
+	size_t once_write_num = USER_BUFF_SIZE;
+	int i, tmp = 0;
+	//int test_mode = 0;  //by mtj 20140908
+	int offset = 0;         //by mtj 20140908
 	struct omap_fpga_printer_ctl_dev *ctl_dev = filp->private_data;
-
+	struct platform_device *pdev = ctl_dev->pdev;
 
 	if (count == 0)
 		return 0;
@@ -117,45 +66,52 @@ size_t count, loff_t *f_pos)
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
 
-	if (len > count)
-		len = count;
 
-	memset(ctl_dev->user_buff, 0, USER_BUFF_SIZE);
+	memset(ctl_dev->user_buff, 0, USER_BUFF_SIZE);//unnecessary
 
-	if (copy_from_user(ctl_dev->user_buff, buff, len)) {
-		status = -EFAULT;
-		goto fpga_write_done;
+
+	offset = buff[0] | buff[1] << 8;
+	buff    +=  2;
+	count   -=  2;
+
+	while(write_num < count)
+	{
+		
+		if (once_write_num > (count - write_num))
+			once_write_num = count - write_num;
+		
+		if (copy_from_user(ctl_dev->user_buff, buff, once_write_num))
+		{
+			dev_err(&pdev->dev, "omap_fpga_prienter_ctl_write: copy_from_user failed\n");
+			write_num = -EFAULT;
+			goto fpga_write_done;
+		}
+		buff += once_write_num;
+		write_num += once_write_num;  //pang1567 add return the write data size
+		for (i = 0; i < once_write_num; i += 2)
+		{
+			tmp = ctl_dev->user_buff[i] | ctl_dev->user_buff[i+1] << 8;  //mtj
+			writew(tmp,ctl_dev->IO_ADDR_W + offset);   //by mtj 20140908
+		}
 	}
-
-	/* do something with the user data */
-
-	printk("fpga_write \n");
-	for (i = 0; i < len; i=i+2) {
-		tmp = (unsigned int)ctl_dev->user_buff | ctl_dev->user_buff[i+1] << 8;
-		writew(tmp, ctl_dev->IO_ADDR_W+i);
-	}
-
-	for (i = 0; i < len; i++) {
-		printk("0x%x ",(unsigned int)ctl_dev->user_buff);
-	}
-
-	printk("\n");
 
 fpga_write_done:
 
 	up(&ctl_dev->sem);
 
-	return status;
+	return write_num;
 }
 
 static ssize_t omap_fpga_printer_ctl_read(struct file *filp, char __user *buff,
 size_t count, loff_t *offp)
 {
-	ssize_t status;
-	size_t len;
+	size_t read_num = 0;
+	size_t once_read_num = USER_BUFF_SIZE;
+	size_t offset;
+	unsigned short tmp;
+	int i;
 	struct omap_fpga_printer_ctl_dev *ctl_dev = filp->private_data;
-
-	// int i,tmp;
+	struct platform_device *pdev = ctl_dev->pdev;
 
 	/*
 	Generic user progs like cat will continue calling until we
@@ -163,47 +119,63 @@ size_t count, loff_t *offp)
 	second call.
 	*/
 	if (*offp > 0)
-	return 0;
+		return 0;
 
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
 
-	strcpy(ctl_dev->user_buff, "fpga driver data goes here\n");
+	offset = buff[0] | buff[1] << 8;
 
-	len = strlen(ctl_dev->user_buff);
+	while(read_num < count)
+	{
+		if (once_read_num > (count - read_num))
+			once_read_num = count - read_num;
 
-	if (len > count)
-		len = count;
-
-	if (copy_to_user(buff, ctl_dev->user_buff, len)) {
-		status = -EFAULT;
-		goto fpga_read_done;
+		for(i = 0;i < once_read_num;i += 2)
+		{
+			//gDmaCh
+			tmp = readw(ctl_dev->IO_ADDR_R + offset);
+			ctl_dev->user_buff[i] = tmp;
+			ctl_dev->user_buff[i+1] = tmp>>8;
+		}
+		if (copy_to_user(buff, ctl_dev->user_buff, once_read_num)) {
+			dev_err(&pdev->dev, "omap_fpga_printer_ctl_read: copy_to_user failed\n");
+			read_num = -EFAULT;
+			goto fpga_read_done;
+		}
+		buff += once_read_num;
+		read_num += once_read_num;
 	}
 
 fpga_read_done:
 	up(&ctl_dev->sem);
-	return status;
+	return read_num;
 }
 
 static int omap_fpga_printer_ctl_open(struct inode *inode, struct file *filp)
 {
 	int status = 0;
 	struct omap_fpga_printer_ctl_dev *ctl_dev;
+	struct platform_device *pdev;
 
 	ctl_dev = container_of(inode->i_cdev, struct omap_fpga_printer_ctl_dev, cdev);
-	if (ctl_dev) {
-		filp->private_data = ctl_dev;
-	}
+
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
 
-	if (!ctl_dev->user_buff) {
-		ctl_dev->user_buff = kmalloc(USER_BUFF_SIZE, GFP_KERNEL);
-
+	if (ctl_dev != NULL) {
+		filp->private_data = ctl_dev;
+		pdev = ctl_dev->pdev;
 		if (!ctl_dev->user_buff) {
-			printk(KERN_ALERT "fpga_open: user_buff alloc failed\n");
-			status = -ENOMEM;
+			ctl_dev->user_buff = kmalloc(USER_BUFF_SIZE, GFP_KERNEL);
+
+			if (!ctl_dev->user_buff) {
+				dev_err(&pdev->dev, "fpga_open: user_buff alloc failed\n");
+				status = -ENOMEM;
+			}
 		}
+	} else {
+		printk(KERN_ALERT "fpga_open: ctl_dev is null\n");
 	}
 
 	up(&ctl_dev->sem);

@@ -8,6 +8,8 @@ install: linux_install u-boot-spl_install linux-dtbs_install
 
 make_init:
 	install -d $(ROOTFS)
+	install -d $(ROOTFS)/etc
+	install -d $(ROOTFS)/etc/init.d
 	install -d $(KERNEL_OBJ)
 	install -d $(UBOOT_OBJ)
 	install -d $(NCURSES_OBJ)
@@ -174,18 +176,18 @@ mysql: make_init
 	@echo =====================================
 	@echo     Building the mysql
 	@echo =====================================
-	pushd $(MYSQL_SRC);PATH=$(GCC_BIN_PATH):$(PATH) $(MYSQL_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(NCURSES_DESTDIR)/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
+	pushd $(MYSQL_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) $(MYSQL_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(NCURSES_DESTDIR)/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
 	#cp $(MYSQL_SRC)/scripts/*.sql $(MYSQL_OBJ)/scripts/
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_SRC)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_OBJ)
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_SRC) install DESTDIR=$(MYSQL_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_OBJ) install DESTDIR=$(MYSQL_DESTDIR)
 	rm -rf $(MYSQL_DESTDIR)/usr/lib/mysql/*.a
 	rm -rf $(MYSQL_DESTDIR)/usr/lib/mysql/plugin/*.a
 	rm -rf $(MYSQL_DESTDIR)/usr/mysql-test
 	cp -ar $(MYSQL_DESTDIR)/usr $(ROOTFS)/
-	cp $(MYSQL_SRC)/support-files/my-medium.cnf $(ROOTFS)/etc/my.cnf
-	cp $(MYSQL_SRC)/support-files/mysql.server $(ROOTFS)/etc/init.d/mysqld
+	install $(MYSQL_SRC)/support-files/my-medium.cnf $(ROOTFS)/etc/my.cnf
+	install $(MYSQL_SRC)/support-files/mysql.server $(ROOTFS)/etc/init.d/mysqld
 	chmod +x $(ROOTFS)/etc/init.d/mysqld
 	mkdir -p $(ROOTFS)/var/run/mysqld
 	touch $(ROOTFS)/var/run/mysqld/mysqld.pid

@@ -792,8 +792,8 @@ mysqlbug: ${top_builddir}/config.status mysqlbug.sh
 # needed to upgrade the system tables from an older version
 mysql_fix_privilege_tables.sql: mysql_system_tables.sql \
 				mysql_system_tables_fix.sql
-	@echo "Building $@";
-	@cat mysql_system_tables.sql mysql_system_tables_fix.sql > $@
+	echo "Building $@";
+	cat $(top_srcdir)/scripts/mysql_system_tables.sql $(top_srcdir)/scripts/mysql_system_tables_fix.sql > $@
 
 #
 # Build mysql_fix_privilege_tables_sql.c from
@@ -804,9 +804,9 @@ mysql_fix_privilege_tables.sql: mysql_system_tables.sql \
 mysql_fix_privilege_tables_sql.c: comp_sql.c mysql_fix_privilege_tables.sql
 	$(MAKE) $(AM_MAKEFLAGS) comp_sql$(EXEEXT)
 	sleep 2
-	$(top_builddir)/scripts/comp_sql$(EXEEXT) \
+	$(top_srcdir)/scripts/comp_sql$(EXEEXT) \
 	  mysql_fix_privilege_tables \
-	    $(top_srcdir)/scripts/mysql_fix_privilege_tables.sql $@
+	    $(top_builddir)/scripts/mysql_fix_privilege_tables.sql $@
 
 .sh:
 	@RM@ -f $@ $@-t

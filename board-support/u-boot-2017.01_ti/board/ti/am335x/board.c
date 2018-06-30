@@ -718,7 +718,7 @@ int board_late_init(void)
 #endif
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	char *name = NULL;
+	char *name = "A33515BB";
 
 	if (board_is_bbg1())
 		name = "BBG1";

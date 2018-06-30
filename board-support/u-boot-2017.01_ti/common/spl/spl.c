@@ -366,8 +366,8 @@ __weak void dram_init_banksize(void)
 void board_init_r(gd_t *dummy1, ulong dummy2)
 {
 	u32 spl_boot_list[] = {
-		BOOT_DEVICE_NONE,
-		BOOT_DEVICE_NONE,
+		BOOT_DEVICE_MMC1,
+		BOOT_DEVICE_NAND,
 		BOOT_DEVICE_NONE,
 		BOOT_DEVICE_NONE,
 		BOOT_DEVICE_NONE,
@@ -406,7 +406,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 #endif
 
 	memset(&spl_image, '\0', sizeof(spl_image));
-	board_boot_order(spl_boot_list);
+	//board_boot_order(spl_boot_list);
 
 	if (boot_from_devices(&spl_image, spl_boot_list,
 			      ARRAY_SIZE(spl_boot_list))) {

@@ -284,7 +284,8 @@ int spl_mmc_load_image(struct spl_image_info *spl_image,
 		return err;
 	}
 
-	boot_mode = spl_boot_mode(bootdev->boot_device);
+	//boot_mode = spl_boot_mode(bootdev->boot_device);
+	boot_mode = MMCSD_MODE_FS;
 	err = -EINVAL;
 	switch (boot_mode) {
 	case MMCSD_MODE_EMMCBOOT:

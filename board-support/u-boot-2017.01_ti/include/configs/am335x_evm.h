@@ -74,7 +74,7 @@
 	#devtypel #instance " "
 
 #define BOOTENV_DEV_NAND(devtypeu, devtypel, instance) \
-	"bootcmd_" #devtypel "=" \
+	"bootcmd_" #devtypel #instance "=" \
 	"run nandboot\0"
 
 #define BOOTENV_DEV_NAME_NAND(devtypeu, devtypel, instance) \
@@ -90,7 +90,13 @@
 	func(DHCP, dhcp, na)
 
 #define CONFIG_BOOTCOMMAND \
-	"if mmc dev 0; then run xflash; fi; run nandboot"
+	"if test ${boot_fit} -eq 1; then "		\
+			"run update_to_fit;"	\
+	"fi;"	\
+	"run findfdt; " \
+	"run init_console; " \
+	"run envboot; " \
+	"run distro_bootcmd"
 
 #include <config_distro_bootcmd.h>
 

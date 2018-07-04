@@ -669,7 +669,7 @@
 
 				interrupts = <18>;
 				interrupt-names = "mc";
-				dr_mode = "otg";
+				dr_mode = "peripheral";
 				mentor,multipoint = <1>;
 				mentor,num-eps = <16>;
 				mentor,ram-bits = <12>;
@@ -716,7 +716,7 @@
 				reg-names = "mc", "control";
 				interrupts = <19>;
 				interrupt-names = "mc";
-				dr_mode = "otg";
+				dr_mode = "host";
 				mentor,multipoint = <1>;
 				mentor,num-eps = <16>;
 				mentor,ram-bits = <12>;

@@ -9,6 +9,8 @@
 
 /bin/mount -n -t ramfs none /dev
 
+/bin/mount -n -t debugfs none /sys/kernel/debug
+
 /bin/mkdir /var/tmp
 
 /bin/mkdir /var/modules

@@ -51,8 +51,10 @@ INSTALL_MOD_STRIP=1
 # Set EXEC_DIR to install example binaries
 #EXEC_DIR=/home/zte/ti-processor-sdk-linux-am335x-evm-04.02.00.09/targetNFS/home/root/am335x-evm
 
-export NCURSES_SRC=$(TI_SDK_PATH)/apps/ncurses-5.9
-export MYSQL_SRC=$(TI_SDK_PATH)/apps/mysql-5.1.73
+export APP_SRC_DIR=$(TI_SDK_PATH)/apps
+export NCURSES_SRC=$(APP_SRC_DIR)/ncurses-5.9
+export MYSQL_SRC=$(APP_SRC_DIR)/mysql-5.1.73
+export FPGA_TEST_SRC=$(APP_SRC_DIR)/fpga_test
 
 #root of the target file system for installing applications
 export ROOTFS=$(OUT_DIR)/rootfs

@@ -203,6 +203,12 @@ mysql_clean:
 	$(MAKE) -C $(MYSQL_SRC) clean
 	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/*
 
+fpga_test: make_init
+	@echo =====================================
+	@echo     Building the fpga_read_write
+	@echo =====================================
+	$(MAKE) -C $(FPGA_TEST_SRC) CROSS_COMPILE=$(CROSS_COMPILE) ROOTFS=$(ROOTFS)
+
 clean_out_dir:
 	@echo =======================================
 	@echo     Cleaning out_dir

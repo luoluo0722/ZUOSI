@@ -505,7 +505,7 @@ static void gpmc_show_regs(int cs, const char *desc)
  * Note that gpmc,wait-pin handing wrongly assumes bit 8 is available,
  * see commit c9fb809.
  */
-static void gpmc_cs_show_timings(int cs, const char *desc)
+void gpmc_cs_show_timings(int cs, const char *desc)
 {
 	gpmc_show_regs(cs, desc);
 
@@ -581,7 +581,7 @@ static void gpmc_cs_show_timings(int cs, const char *desc)
 	GPMC_GET_TICKS(GPMC_CS_CONFIG6, 24, 28, "wr-access-ns");
 }
 #else
-static inline void gpmc_cs_show_timings(int cs, const char *desc)
+inline void gpmc_cs_show_timings(int cs, const char *desc)
 {
 }
 #endif

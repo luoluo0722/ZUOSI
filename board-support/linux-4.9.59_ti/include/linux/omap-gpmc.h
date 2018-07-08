@@ -72,6 +72,8 @@ extern void gpmc_read_settings_dt(struct device_node *np,
 extern void omap3_gpmc_save_context(void);
 extern void omap3_gpmc_restore_context(void);
 
+extern void gpmc_cs_show_timings(int cs, const char *desc);
+
 struct gpmc_timings;
 struct omap_nand_platform_data;
 struct omap_onenand_platform_data;

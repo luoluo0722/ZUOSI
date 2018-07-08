@@ -11,4 +11,6 @@ Enter the source root, and make
 3.OUTPUT
 All the output file is in the out directory, and it include: zImage, dtb, MLO, uboot image and ubi image
 
-
+4.create-sdcard.sh
+tools/script/create-sdcard.sh
+It is used to create booting sdcard. Must be used with sudo.

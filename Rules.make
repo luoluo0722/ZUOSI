@@ -28,6 +28,7 @@ export CROSS_COMPILE=$(GCC_BIN_PATH)/arm-linux-gnueabihf-
 #Default CC value to be used when cross compiling.  This is so that the
 #GNU Make default of "cc" is not used to point to the host compiler
 export CC=$(CROSS_COMPILE)gcc
+export STRIP=$(CROSS_COMPILE)strip
 
 #Location of environment-setup file
 export ENV_SETUP=$(LINUX_DEVKIT_PATH)/environment-setup
@@ -54,7 +55,9 @@ INSTALL_MOD_STRIP=1
 export APP_SRC_DIR=$(TI_SDK_PATH)/apps
 export NCURSES_SRC=$(APP_SRC_DIR)/ncurses-5.9
 export MYSQL_SRC=$(APP_SRC_DIR)/mysql-5.1.73
-export FPGA_TEST_SRC=$(APP_SRC_DIR)/fpga_test
+export SQLITE_SRC=$(APP_SRC_DIR)/sqlite-autoconf-3240000
+#export FPGA_TEST_SRC=$(APP_SRC_DIR)/fpga_test
+export APP_TEST_SRC=$(APP_SRC_DIR)/app_test
 
 #root of the target file system for installing applications
 export ROOTFS=$(OUT_DIR)/rootfs
@@ -64,10 +67,12 @@ export KERNEL_OBJ=$(INTERMEDIATES_DIR)/kernel_obj
 export BUSYBOX_OBJ=$(INTERMEDIATES_DIR)/busybox_obj
 export UBOOT_OBJ=$(INTERMEDIATES_DIR)/uboot_obj
 export MYSQL_OBJ=$(INTERMEDIATES_DIR)/mysql_obj
+export SQLITE_OBJ=$(INTERMEDIATES_DIR)/sqlite_obj
 export NCURSES_OBJ=$(INTERMEDIATES_DIR)/ncurses_obj
 
 export NCURSES_DESTDIR=$(OUT_DIR)/ncurses-5.9
 export MYSQL_DESTDIR=$(OUT_DIR)/mysql-5.1.73
+export SQLITE_DESTDIR=$(OUT_DIR)/sqlite-autoconf-3240000
 
 export MKUBIFS_ARGS= -F -m 2048 -e 124KiB -c 2650
 export UBINIZE_ARGS= -m 2048 -p 128KiB -s 2048

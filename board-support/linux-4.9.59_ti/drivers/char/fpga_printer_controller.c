@@ -3,6 +3,7 @@
  * Do a global replace of 'fpga' with your driver name.
  */
 
+#define DEBUG
 #include <linux/platform_device.h>
 #include <linux/dmaengine.h>
 #include <linux/dma-mapping.h>
@@ -74,22 +75,39 @@ static void omap_fpga_printer_ctl_dma_callback(void *data)
  * @len: number of data bytes to be transferred
  * @is_write: flag for read/write operation
  */
-static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ctl_dev *ctl_dev, void *addr,
-					unsigned int len, int is_write)
+static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ctl_dev *ctl_dev, 
+		void *addr, unsigned int len, int offset, int is_write)
 {
 	struct dma_async_tx_descriptor *tx;
+	struct dma_slave_config cfg;
+	struct platform_device *pdev = ctl_dev->pdev;
 	enum dma_data_direction dir = is_write ? DMA_TO_DEVICE :
 							DMA_FROM_DEVICE;
 	struct scatterlist sg;
 	unsigned n;
+	int err;
 
 	if (!virt_addr_valid(addr))
 		goto out_copy;
 
+	memset(&cfg, 0, sizeof(cfg));
+	cfg.src_addr = ctl_dev->phys_base + offset;
+	cfg.dst_addr = ctl_dev->phys_base + offset;
+	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
+	cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
+	cfg.src_maxburst = SZ_128K;
+	cfg.dst_maxburst = SZ_128K;
+	err = dmaengine_slave_config(ctl_dev->dma, &cfg);
+	if (err) {
+		dev_err(&pdev->dev, "DMA engine slave config failed: %d\n",
+			err);
+		goto out_copy;
+	}
+
 	sg_init_one(&sg, addr, len);
 	n = dma_map_sg(ctl_dev->dma->device->dev, &sg, 1, dir);
 	if (n == 0) {
-		dev_err(&ctl_dev->pdev->dev,
+		dev_err(&pdev->dev,
 			"Couldn't DMA map a %d byte buffer\n", len);
 		goto out_copy;
 	}
@@ -139,7 +157,7 @@ size_t count, loff_t *f_pos)
 	struct omap_fpga_printer_ctl_dev *ctl_dev = filp->private_data;
 	struct platform_device *pdev = ctl_dev->pdev;
 
-	if (count == 0)
+	if (count == 0 || count > SZ_1M)
 		return 0;
 
 	if(copy_from_user(&offset, buff, sizeof(offset))) {
@@ -148,7 +166,7 @@ size_t count, loff_t *f_pos)
 		goto fpga_write_done;
 	}
 
-	dev_err(&pdev->dev, "omap_fpga_printer_ctl_write: offset = %x\n", offset);
+	dev_dbg(&pdev->dev, "omap_fpga_printer_ctl_write: offset = %x\n", offset);
 
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
@@ -167,16 +185,19 @@ size_t count, loff_t *f_pos)
 		}
 		buff += once_write_num;
 		write_num += once_write_num;
-		for (i = 0; i < once_write_num; i += 2){
-			tmp = ctl_dev->user_buff[i] | ctl_dev->user_buff[i+1] << 8;
-			writew(tmp,ctl_dev->IO_ADDR_W + offset);
+		if(once_write_num >= SZ_64K 
+			&& !omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, once_write_num, offset, 0x1)){
+			dev_dbg(&pdev->dev, "write DMA trans\n");
+		}else{
+			for (i = 0; i < once_write_num; i += 2){
+				tmp = ctl_dev->user_buff[i] | ctl_dev->user_buff[i+1] << 8;
+				writew(tmp,ctl_dev->IO_ADDR_W + offset);
+			}
 		}
 	}
 
 fpga_write_done:
-
 	up(&ctl_dev->sem);
-
 	return write_num;
 }
 
@@ -205,7 +226,7 @@ size_t count, loff_t *offp)
 		goto fpga_read_done;
 	}
 
-	dev_err(&pdev->dev, "omap_fpga_printer_ctl_read: offset = %x\n", offset);
+	dev_dbg(&pdev->dev, "omap_fpga_printer_ctl_read: offset = %x\n", offset);
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
 
@@ -213,10 +234,15 @@ size_t count, loff_t *offp)
 		if (once_read_num > (count - read_num))
 			once_read_num = count - read_num;
 
-		for(i = 0;i < once_read_num;i += 2)	{
-			tmp = readw(ctl_dev->IO_ADDR_R + offset);
-			ctl_dev->user_buff[i] = tmp;
-			ctl_dev->user_buff[i+1] = tmp>>8;
+		if(once_read_num >= SZ_64K 
+			&& !omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, once_read_num, offset, 0x0)){
+			dev_dbg(&pdev->dev, "read DMA trans\n");
+		} else{
+			for(i = 0;i < once_read_num;i += 2){
+				tmp = readw(ctl_dev->IO_ADDR_R + offset);
+				ctl_dev->user_buff[i] = tmp;
+				ctl_dev->user_buff[i+1] = tmp>>8;
+			}
 		}
 		if(copy_to_user(buff, ctl_dev->user_buff, once_read_num)){
 			dev_err(&pdev->dev, "omap_fpga_printer_ctl_read: copy_to_user failed\n");
@@ -279,7 +305,6 @@ static int omap_fpga_printer_ctl_get_dt_info(struct device *dev, struct omap_fpg
 static int omap_fpga_printer_debugfs_show(struct seq_file *s, void *what)
 {
 	//struct omap_fpga_printer_ctl_dev *ctl_dev = s->private;
-
 	gpmc_cs_show_timings(2, "debugfs modify timging ");
 	return 0;
 }
@@ -295,7 +320,7 @@ static int omap_fpga_printer_trans_thread(void *arg)
 	struct platform_device *pdev = ctl_dev->pdev;
 	unsigned short tmp;
 
-	dev_err(&pdev->dev, "trans thread started\n");
+	dev_dbg(&pdev->dev, "trans thread started\n");
 
 	if(ctl_dev->rd_wr_flag == 0){
 		while(!kthread_should_stop()){
@@ -325,11 +350,17 @@ static int omap_fpga_printer_trans_thread(void *arg)
 			}
 		}
 	}
+	else if(ctl_dev->rd_wr_flag == 5){
+		omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, SZ_1M, 0x4C, 0x0);
+	}
+	else if(ctl_dev->rd_wr_flag == 6){
+		omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, SZ_1M, 0x4C, 0x1);
+	}
 	else{
 		dev_err(&pdev->dev, "trans thread unknown flag\n");
 	}
 
-	dev_err(&pdev->dev, "trans thread ended\n");
+	dev_dbg(&pdev->dev, "trans thread ended\n");
 
 	return 0;
 }
@@ -353,7 +384,7 @@ static ssize_t omap_fpga_printer_debugfs_write(struct file *file, const char __u
 			ctl_dev->rd_wr_flag = 0;
 			ctl_dev->trans_thread = kthread_run(omap_fpga_printer_trans_thread, (void *)ctl_dev, "rd_trans_thread");
 			if (IS_ERR(ctl_dev->trans_thread)) {
-				dev_err(&pdev->dev, "Failed to create the scan thread\n");
+				dev_err(&pdev->dev, "Failed to create the rd_trans_thread\n");
 				ctl_dev->trans_thread = NULL;
 			}
 		}
@@ -364,7 +395,7 @@ static ssize_t omap_fpga_printer_debugfs_write(struct file *file, const char __u
 			ctl_dev->rd_wr_flag = 1;
 			ctl_dev->trans_thread = kthread_run(omap_fpga_printer_trans_thread, (void *)ctl_dev, "wr_trans_thread");
 			if (IS_ERR(ctl_dev->trans_thread)) {
-				dev_err(&pdev->dev, "Failed to create the scan thread\n");
+				dev_err(&pdev->dev, "Failed to create the wr_trans_thread\n");
 				ctl_dev->trans_thread = NULL;
 			}
 		}
@@ -372,19 +403,42 @@ static ssize_t omap_fpga_printer_debugfs_write(struct file *file, const char __u
 	}
 	else if(strncmp(buf, "start_rdwr_trans", 16) == 0) {
 		if (ctl_dev->trans_thread == NULL){
-			ctl_dev->rd_wr_flag = 2;
+			ctl_dev->rd_wr_flag = 3;
 			ctl_dev->trans_thread = kthread_run(omap_fpga_printer_trans_thread, (void *)ctl_dev, "rdwr_trans_thread");
 			if (IS_ERR(ctl_dev->trans_thread)) {
-				dev_err(&pdev->dev, "Failed to create the scan thread\n");
+				dev_err(&pdev->dev, "Failed to create the rdwr_trans_thread\n");
 				ctl_dev->trans_thread = NULL;
 			}
 		}
 
 	}
+	else if(strncmp(buf, "start_dmard_trans", 17) == 0) {
+		if (ctl_dev->trans_thread == NULL){
+			ctl_dev->rd_wr_flag = 5;
+			ctl_dev->trans_thread = kthread_run(omap_fpga_printer_trans_thread, (void *)ctl_dev, "dmard_trans_thread");
+			if (IS_ERR(ctl_dev->trans_thread)) {
+				dev_err(&pdev->dev, "Failed to create the dmard_trans_thread\n");
+				ctl_dev->trans_thread = NULL;
+			}
+		}
 
+	}
+	else if(strncmp(buf, "start_dmawr_trans", 17) == 0) {
+		if (ctl_dev->trans_thread == NULL){
+			ctl_dev->rd_wr_flag = 6;
+			ctl_dev->trans_thread = kthread_run(omap_fpga_printer_trans_thread, (void *)ctl_dev, "dmawr_trans_thread");
+			if (IS_ERR(ctl_dev->trans_thread)) {
+				dev_err(&pdev->dev, "Failed to create the dmawr_trans_thread\n");
+				ctl_dev->trans_thread = NULL;
+			}
+		}
+
+	}
 	else if (strncmp(buf, "stop_trans", 10) == 0){
 		if (ctl_dev->trans_thread) {
-			kthread_stop(ctl_dev->trans_thread);
+			if(ctl_dev->rd_wr_flag != 5 && ctl_dev->rd_wr_flag != 6){
+				kthread_stop(ctl_dev->trans_thread);
+			}
 			ctl_dev->trans_thread = NULL;
 			ctl_dev->rd_wr_flag = -1;
 		}
@@ -554,30 +608,13 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 		err = PTR_ERR(ctl_dev->dma);
 		dev_err(&pdev->dev, "DMA engine request failed: %x\n", err);
 		goto err_device_destroy;
-	} else {
-		struct dma_slave_config cfg;
-
-		memset(&cfg, 0, sizeof(cfg));
-		cfg.src_addr = ctl_dev->phys_base;
-		cfg.dst_addr = ctl_dev->phys_base;
-		cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
-		cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
-		cfg.src_maxburst = SZ_128K;
-		cfg.dst_maxburst = SZ_128K;
-		err = dmaengine_slave_config(ctl_dev->dma, &cfg);
-		if (err) {
-			dev_err(&pdev->dev, "DMA engine slave config failed: %d\n",
-				err);
-			goto err_dma_release;
-		}
-
 	}
 	platform_set_drvdata(pdev, ctl_dev);
 	omap_fpga_printer_ctl_debugfs_add(ctl_dev);
 	return 0;
 
-err_dma_release:
-	dma_release_channel(ctl_dev->dma);
+//err_dma_release:
+//	dma_release_channel(ctl_dev->dma);
 err_device_destroy:
 	device_destroy(ctl_dev->drv_class, MKDEV(MAJOR(ctl_dev->dev_id), 0));
 err_cdev_del:
@@ -598,6 +635,7 @@ static int omap_fpga_printer_ctl_remove(struct platform_device *pdev)
 	struct omap_fpga_printer_ctl_dev *ctl_dev = platform_get_drvdata(pdev);
 
 	omap_fpga_printer_ctl_debugfs_rm(ctl_dev);
+	dma_release_channel(ctl_dev->dma);
 	device_destroy(ctl_dev->drv_class, MKDEV(MAJOR(ctl_dev->dev_id), 0));
 	cdev_del(&ctl_dev->cdev);
 	class_destroy(ctl_dev->drv_class);

@@ -2,8 +2,8 @@
 
 MAKE_JOBS ?= 1
 
-all: linux u-boot-spl linux-dtbs busybox ncurses mysql ubifsimg
-clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean clean_out_dir
+all: linux u-boot-spl linux-dtbs busybox ncurses mysql sqlite ubifsimg
+clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean sqlite_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 
 make_init:
@@ -15,6 +15,7 @@ make_init:
 	install -d $(NCURSES_OBJ)
 	install -d $(BUSYBOX_OBJ)
 	install -d $(MYSQL_OBJ)
+	install -d $(SQLITE_OBJ)
 
 # Kernel build targets
 linux: linux-dtbs
@@ -203,11 +204,34 @@ mysql_clean:
 	$(MAKE) -C $(MYSQL_SRC) clean
 	rm -rf $(TI_SDK_PATH)/out/intermediate/mysql-5.1.73/*
 
-fpga_test: make_init
+sqlite: make_init
 	@echo =====================================
-	@echo     Building the fpga_read_write
+	@echo     Building the sqlite
 	@echo =====================================
-	$(MAKE) -C $(FPGA_TEST_SRC) CROSS_COMPILE=$(CROSS_COMPILE) ROOTFS=$(ROOTFS)
+	pushd $(SQLITE_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) $(SQLITE_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr ;popd
+	#cp $(MYSQL_SRC)/scripts/*.sql $(MYSQL_OBJ)/scripts/
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(SQLITE_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(SQLITE_OBJ) install DESTDIR=$(SQLITE_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(STRIP) $(SQLITE_DESTDIR)/usr/bin/*
+	PATH=$(GCC_BIN_PATH):$(PATH) $(STRIP) $(SQLITE_DESTDIR)/usr/lib/*.so
+	rm -rf $(SQLITE_DESTDIR)/usr/lib/*.a
+	rm -rf $(SQLITE_DESTDIR)/usr/lib/*.la
+	cp -ar $(SQLITE_DESTDIR)/usr $(ROOTFS)/
+	mkdir -p $(ROOTFS)/usr/sbin
+	ln -sf /usr/bin/sqlite3 $(ROOTFS)/usr/sbin/
+	
+sqlite_clean:
+	@echo =======================================
+	@echo     Cleaning the sqlite
+	@echo =======================================
+	$(MAKE) -C $(SQLITE_OBJ) distclean
+	rm -rf $(TI_SDK_PATH)/out/intermediate/sqlite-autoconf-3240000/*
+
+app_test: make_init
+	@echo =====================================
+	@echo     Building the app_test
+	@echo =====================================
+	$(MAKE) -C $(APP_TEST_SRC) CROSS_COMPILE=$(CROSS_COMPILE) ROOTFS=$(ROOTFS)
 
 clean_out_dir:
 	@echo =======================================

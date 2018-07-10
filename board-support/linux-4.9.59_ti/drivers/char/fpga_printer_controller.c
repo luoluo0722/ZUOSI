@@ -36,7 +36,7 @@
 #define	DRIVER_NAME	"omap2-fpga-printer-ctl"
 #define	DEVICE_NAME	"fpga_printer_ctl"
 
-#define USER_BUFF_SIZE 128
+#define USER_BUFF_SIZE SZ_1M
 
 struct omap_fpga_printer_ctl_dev {
 	dev_t dev_id;
@@ -52,9 +52,82 @@ struct omap_fpga_printer_ctl_dev {
 	struct dentry *debug_entry;
 	struct task_struct *trans_thread;
 	int rd_wr_flag;
+	struct dma_chan			*dma;
+	struct completion		comp;
 	void __iomem *IO_ADDR_R;
 	void __iomem *IO_ADDR_W;
 };
+
+/*
+ * omap_fpga_printer_ctl_dma_callback: callback on the completion of dma transfer
+ * @data: pointer to completion data structure
+ */
+static void omap_fpga_printer_ctl_dma_callback(void *data)
+{
+	complete((struct completion *) data);
+}
+
+/*
+ * omap_fpga_printer_ctl_dma_transfer: configure and start dma transfer
+ * @mtd: MTD device structure
+ * @addr: virtual address in RAM of source/destination
+ * @len: number of data bytes to be transferred
+ * @is_write: flag for read/write operation
+ */
+static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ctl_dev *ctl_dev, void *addr,
+					unsigned int len, int is_write)
+{
+	struct dma_async_tx_descriptor *tx;
+	enum dma_data_direction dir = is_write ? DMA_TO_DEVICE :
+							DMA_FROM_DEVICE;
+	struct scatterlist sg;
+	unsigned n;
+
+	if (!virt_addr_valid(addr))
+		goto out_copy;
+
+	sg_init_one(&sg, addr, len);
+	n = dma_map_sg(ctl_dev->dma->device->dev, &sg, 1, dir);
+	if (n == 0) {
+		dev_err(&ctl_dev->pdev->dev,
+			"Couldn't DMA map a %d byte buffer\n", len);
+		goto out_copy;
+	}
+
+	tx = dmaengine_prep_slave_sg(ctl_dev->dma, &sg, n,
+		is_write ? DMA_MEM_TO_DEV : DMA_DEV_TO_MEM,
+		DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+	if (!tx)
+		goto out_copy_unmap;
+
+	tx->callback = omap_fpga_printer_ctl_dma_callback;
+	tx->callback_param = &ctl_dev->comp;
+	dmaengine_submit(tx);
+
+	init_completion(&ctl_dev->comp);
+
+	/* setup and start DMA using dma_addr */
+	dma_async_issue_pending(ctl_dev->dma);
+
+	wait_for_completion(&ctl_dev->comp);
+
+	dma_unmap_sg(ctl_dev->dma->device->dev, &sg, 1, dir);
+	return 0;
+
+out_copy_unmap:
+	dma_unmap_sg(ctl_dev->dma->device->dev, &sg, 1, dir);
+out_copy:
+#if 0
+	if (info->nand.options & NAND_BUSWIDTH_16)
+		is_write == 0 ? omap_read_buf16(mtd, (u_char *) addr, len)
+			: omap_write_buf16(mtd, (u_char *) addr, len);
+	else
+		is_write == 0 ? omap_read_buf8(mtd, (u_char *) addr, len)
+			: omap_write_buf8(mtd, (u_char *) addr, len);
+#endif
+	return 1;
+}
+
 
 static ssize_t omap_fpga_printer_ctl_write(struct file *filp, const char __user *buff,
 size_t count, loff_t *f_pos)
@@ -75,7 +148,7 @@ size_t count, loff_t *f_pos)
 		goto fpga_write_done;
 	}
 
-	dev_err(&pdev->dev, "omap_fpga_printer_ctl_write: offset = %p\n", offset);
+	dev_err(&pdev->dev, "omap_fpga_printer_ctl_write: offset = %x\n", offset);
 
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
@@ -132,7 +205,7 @@ size_t count, loff_t *offp)
 		goto fpga_read_done;
 	}
 
-	dev_err(&pdev->dev, "omap_fpga_printer_ctl_read: offset = %p\n", offset);
+	dev_err(&pdev->dev, "omap_fpga_printer_ctl_read: offset = %x\n", offset);
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
 
@@ -161,7 +234,7 @@ fpga_read_done:
 
 static int omap_fpga_printer_ctl_open(struct inode *inode, struct file *filp)
 {
-	int status = 0;
+	int err = 0;
 	struct omap_fpga_printer_ctl_dev *ctl_dev;
 	struct platform_device *pdev;
 
@@ -178,16 +251,17 @@ static int omap_fpga_printer_ctl_open(struct inode *inode, struct file *filp)
 
 			if (!ctl_dev->user_buff) {
 				dev_err(&pdev->dev, "fpga_open: user_buff alloc failed\n");
-				status = -ENOMEM;
+				err = -ENOMEM;
 			}
 		}
 
 		up(&ctl_dev->sem);
 	} else {
 		printk(KERN_ALERT "fpga_open: ctl_dev is null\n");
+		err = -ENXIO;
 	}
 
-	return status;
+	return err;
 }
 
 static const struct file_operations omap_fpga_printer_ctl_fops = {
@@ -404,6 +478,7 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 	struct device			*dev = &pdev->dev;
 	struct omap_fpga_printer_ctl_dev *ctl_dev;
 	struct device *drv_device;
+	dma_cap_mask_t			mask;
 
 	ctl_dev = devm_kzalloc(&pdev->dev, sizeof(struct omap_fpga_printer_ctl_dev),
 				GFP_KERNEL);
@@ -413,10 +488,13 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 	ctl_dev->pdev = pdev;
 
 	if (dev->of_node) {
-		if (omap_fpga_printer_ctl_get_dt_info(dev, ctl_dev))
-			return -EINVAL;
+		if (omap_fpga_printer_ctl_get_dt_info(dev, ctl_dev)){
+			err = -EFAULT;
+			goto err_release_buf;
+		}
 	} else {
-		return -EINVAL;
+		err = -EFAULT;
+		goto err_release_buf;
 	}
 	sema_init(&ctl_dev->sem, 1);
 
@@ -425,14 +503,18 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 					   "omap2-nand.%d", ctl_dev->gpmc_cs);
 		if (!ctl_dev->name) {
 			dev_err(&pdev->dev, "Failed to set fpga printer dev name\n");
-			return -ENOMEM;
+			err =  -ENOMEM;
+			goto err_release_buf;
 		}
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	ctl_dev->IO_ADDR_R = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(ctl_dev->IO_ADDR_R))
-		return PTR_ERR(ctl_dev->IO_ADDR_R);
+	if (IS_ERR(ctl_dev->IO_ADDR_R)){
+		err = PTR_ERR(ctl_dev->IO_ADDR_R);
+		dev_err(&pdev->dev, "devm_ioremap_resource() failed: %d\n", err);
+		goto err_release_buf;
+	}
 
 	ctl_dev->phys_base = res->start;
 	ctl_dev->IO_ADDR_W = ctl_dev->IO_ADDR_R;
@@ -441,12 +523,12 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 	err = alloc_chrdev_region(&ctl_dev->dev_id, 0, 1, DEVICE_NAME);
 	if (err) {
 		dev_err(&pdev->dev, "alloc_chrdev_region() failed: %d\n", err);
-		return -EFAULT;
+		goto err_unmap_res;
 	}
 
 	ctl_dev->drv_class = class_create(THIS_MODULE, DEVICE_NAME);
 	if (IS_ERR(ctl_dev->drv_class)) {
-		dev_err(&pdev->dev, "class_create(fpga) failed\n");
+		dev_err(&pdev->dev, "class_create() failed\n");
 		goto err_chrdev_unreg;
 	}
 
@@ -464,17 +546,51 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to create device\n");
 		goto err_cdev_del;
 	}
+
+	dma_cap_zero(mask);
+	dma_cap_set(DMA_SLAVE, mask);
+	ctl_dev->dma = dma_request_chan(pdev->dev.parent, "fpga_printer");
+	if (IS_ERR(ctl_dev->dma)) {
+		err = PTR_ERR(ctl_dev->dma);
+		dev_err(&pdev->dev, "DMA engine request failed: %x\n", err);
+		goto err_device_destroy;
+	} else {
+		struct dma_slave_config cfg;
+
+		memset(&cfg, 0, sizeof(cfg));
+		cfg.src_addr = ctl_dev->phys_base;
+		cfg.dst_addr = ctl_dev->phys_base;
+		cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
+		cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
+		cfg.src_maxburst = SZ_128K;
+		cfg.dst_maxburst = SZ_128K;
+		err = dmaengine_slave_config(ctl_dev->dma, &cfg);
+		if (err) {
+			dev_err(&pdev->dev, "DMA engine slave config failed: %d\n",
+				err);
+			goto err_dma_release;
+		}
+
+	}
 	platform_set_drvdata(pdev, ctl_dev);
 	omap_fpga_printer_ctl_debugfs_add(ctl_dev);
 	return 0;
 
+err_dma_release:
+	dma_release_channel(ctl_dev->dma);
+err_device_destroy:
+	device_destroy(ctl_dev->drv_class, MKDEV(MAJOR(ctl_dev->dev_id), 0));
 err_cdev_del:
 	cdev_del(&ctl_dev->cdev);
 err_class_destr:
 	class_destroy(ctl_dev->drv_class);
 err_chrdev_unreg:
 	unregister_chrdev_region(ctl_dev->dev_id, 1);
-	return -EFAULT;
+err_unmap_res:
+	devm_iounmap(&pdev->dev, ctl_dev->IO_ADDR_R);
+err_release_buf:
+	devm_kfree(&pdev->dev, ctl_dev);
+	return err;
 }
 
 static int omap_fpga_printer_ctl_remove(struct platform_device *pdev)

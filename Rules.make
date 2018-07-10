@@ -77,6 +77,6 @@ export SQLITE_DESTDIR=$(OUT_DIR)/sqlite-autoconf-3240000
 export MKUBIFS_ARGS= -F -m 2048 -e 124KiB -c 2650
 export UBINIZE_ARGS= -m 2048 -p 128KiB -s 2048
 
-MAKE_JOBS=2
+MAKE_JOBS=`cat /proc/cpuinfo | grep processor | wc -l`
 
 SHELL=/bin/bash

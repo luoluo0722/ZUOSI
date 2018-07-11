@@ -35,9 +35,17 @@
 /sbin/ifconfig eth0 netmask 255.255.255.0
 /sbin/route add default gw 192.168.1.1 eth0
 
-/sbin/ifconfig eth1 192.168.1.71 netmask 255.255.255.0
-/sbin/route add default gw 192.168.1.1 eth1
+#/sbin/ifconfig eth1 192.168.1.71 netmask 255.255.255.0
+#/sbin/route add default gw 192.168.1.1 eth1
 
-/usr/bin/mysql_install_db  -u root --force --basedir=/usr --datadir=/var/mysql
-chown -R mysql:mysql /var/mysql
+#/usr/bin/mysql_install_db  -u root --force --basedir=/usr --datadir=/var/mysql
+#chown -R mysql:mysql /var/mysql
+
+# mount devpts in order to use telnetd
+/bin/mount -t devpts devpts /dev/pts
+
+if [ -x /sbin/telnetd ] ;
+then
+        telnetd&
+fi
 

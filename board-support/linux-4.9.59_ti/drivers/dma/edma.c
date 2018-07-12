@@ -1129,6 +1129,14 @@ static struct dma_async_tx_descriptor *edma_prep_slave_sg(
 			 * will allow more time to set up the next set of slots.
 			 */
 			edesc->pset[i].param.opt |= (TCINTEN | TCCMODE);
+		if(echan->ch_num == 54){
+			edesc->pset[i].param.opt |= ITCINTEN;
+			//if (direction == DMA_DEV_TO_MEM) {
+			//	edesc->pset[i].param.opt |= SAM;
+			//} else if (direction == DMA_MEM_TO_DEV) {
+			//	edesc->pset[i].param.opt |= DAM;
+			//}
+		}
 	}
 	edesc->residue_stat = edesc->residue;
 
@@ -1649,6 +1657,9 @@ static int edma_alloc_chan_resources(struct dma_chan *chan)
 	edma_set_chmap(echan, echan->slot[0]);
 	echan->alloced = true;
 
+	if(echan->ch_num == 54){
+		echan->hw_triggered = false;
+	}
 	dev_dbg(dev, "Got eDMA channel %d for virt channel %d (%s trigger)\n",
 		EDMA_CHAN_SLOT(echan->ch_num), chan->chan_id,
 		echan->hw_triggered ? "HW" : "SW");

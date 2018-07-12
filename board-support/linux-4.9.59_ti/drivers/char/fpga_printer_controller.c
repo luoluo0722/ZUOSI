@@ -55,6 +55,12 @@ struct omap_fpga_printer_ctl_dev {
 	int rd_wr_flag;
 	struct dma_chan			*dma;
 	struct completion		comp;
+	/* DMA address of the buffer in memory */
+	//dma_addr_t		rx_addr;
+	//dma_addr_t		tx_addr;
+	//void			*rx_buf;
+	//void			*tx_buf;
+
 	void __iomem *IO_ADDR_R;
 	void __iomem *IO_ADDR_W;
 };
@@ -75,8 +81,9 @@ static void omap_fpga_printer_ctl_dma_callback(void *data)
  * @len: number of data bytes to be transferred
  * @is_write: flag for read/write operation
  */
-static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ctl_dev *ctl_dev, 
+static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ctl_dev *ctl_dev,
 		void *addr, unsigned int len, int offset, int is_write)
+		//dma_addr_t addr, size_t len, int offset, int is_write)
 {
 	struct dma_async_tx_descriptor *tx;
 	struct dma_slave_config cfg;
@@ -87,16 +94,18 @@ static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ct
 	unsigned n;
 	int err;
 
-	if (!virt_addr_valid(addr))
+	if (!virt_addr_valid(addr)){
+		dev_err(&pdev->dev, "Addr is not valid: 0x%p\n", addr);
 		goto out_copy;
+	}
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.src_addr = ctl_dev->phys_base + offset;
 	cfg.dst_addr = ctl_dev->phys_base + offset;
 	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
 	cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
-	cfg.src_maxburst = SZ_128K;
-	cfg.dst_maxburst = SZ_128K;
+	cfg.src_maxburst = SZ_32K;
+	cfg.dst_maxburst = SZ_32K;
 	err = dmaengine_slave_config(ctl_dev->dma, &cfg);
 	if (err) {
 		dev_err(&pdev->dev, "DMA engine slave config failed: %d\n",
@@ -112,11 +121,15 @@ static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ct
 		goto out_copy;
 	}
 
+	//tx = dmaengine_prep_slave_single(ctl_dev->dma, addr, len,
 	tx = dmaengine_prep_slave_sg(ctl_dev->dma, &sg, n,
 		is_write ? DMA_MEM_TO_DEV : DMA_DEV_TO_MEM,
 		DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
-	if (!tx)
+	if (!tx){
+		dev_err(&pdev->dev,
+			"dmaengine_prep_slave_sg err\n");
 		goto out_copy_unmap;
+	}
 
 	tx->callback = omap_fpga_printer_ctl_dma_callback;
 	tx->callback_param = &ctl_dev->comp;
@@ -127,7 +140,11 @@ static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ct
 	/* setup and start DMA using dma_addr */
 	dma_async_issue_pending(ctl_dev->dma);
 
+	dev_dbg(&pdev->dev,
+				"before waiting\n");
 	wait_for_completion(&ctl_dev->comp);
+	dev_dbg(&pdev->dev,
+				"after waiting\n");
 
 	dma_unmap_sg(ctl_dev->dma->device->dev, &sg, 1, dir);
 	return 0;
@@ -153,19 +170,22 @@ size_t count, loff_t *f_pos)
 	ssize_t write_num = 0;
 	size_t once_write_num = USER_BUFF_SIZE;
 	int i, tmp = 0;
-	int offset = 0;
+	unsigned short offset = 0;
 	struct omap_fpga_printer_ctl_dev *ctl_dev = filp->private_data;
 	struct platform_device *pdev = ctl_dev->pdev;
 
-	if (count == 0 || count > SZ_1M)
+	if (count == 0 || count > SZ_1M){
+		dev_err(&pdev->dev, "omap_fpga_prienter_ctl_write: count fault %d\n", count);
 		return 0;
+	}
 
 	if(copy_from_user(&offset, buff, sizeof(offset))) {
 		dev_err(&pdev->dev, "omap_fpga_printer_ctl_write: get offset failed\n");
 		write_num = -EFAULT;
 		goto fpga_write_done;
 	}
-
+	buff += 2;
+	count -= 2;
 	dev_dbg(&pdev->dev, "omap_fpga_printer_ctl_write: offset = %x\n", offset);
 
 	if (down_interruptible(&ctl_dev->sem))
@@ -186,8 +206,9 @@ size_t count, loff_t *f_pos)
 		buff += once_write_num;
 		write_num += once_write_num;
 		if(once_write_num >= SZ_64K 
+			//&& !omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->tx_addr, once_write_num, offset, 0x1)){
 			&& !omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, once_write_num, offset, 0x1)){
-			dev_dbg(&pdev->dev, "write DMA trans\n");
+			dev_dbg(&pdev->dev, "write DMA trans: %d\n", once_write_num);
 		}else{
 			for (i = 0; i < once_write_num; i += 2){
 				tmp = ctl_dev->user_buff[i] | ctl_dev->user_buff[i+1] << 8;
@@ -225,7 +246,8 @@ size_t count, loff_t *offp)
 		read_num = -EFAULT;
 		goto fpga_read_done;
 	}
-
+	buff += 2;
+	count -= 2;
 	dev_dbg(&pdev->dev, "omap_fpga_printer_ctl_read: offset = %x\n", offset);
 	if (down_interruptible(&ctl_dev->sem))
 		return -ERESTARTSYS;
@@ -235,8 +257,9 @@ size_t count, loff_t *offp)
 			once_read_num = count - read_num;
 
 		if(once_read_num >= SZ_64K 
+			//&& !omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->rx_addr, once_read_num, offset, 0x0)){
 			&& !omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, once_read_num, offset, 0x0)){
-			dev_dbg(&pdev->dev, "read DMA trans\n");
+			dev_dbg(&pdev->dev, "read DMA trans: %d\n", once_read_num);
 		} else{
 			for(i = 0;i < once_read_num;i += 2){
 				tmp = readw(ctl_dev->IO_ADDR_R + offset);
@@ -351,9 +374,11 @@ static int omap_fpga_printer_trans_thread(void *arg)
 		}
 	}
 	else if(ctl_dev->rd_wr_flag == 5){
+		//omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->rx_addr, SZ_1K, 0x4C, 0x0);
 		omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, SZ_1M, 0x4C, 0x0);
 	}
 	else if(ctl_dev->rd_wr_flag == 6){
+		//omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->tx_addr, SZ_1K, 0x4C, 0x1);
 		omap_fpga_printer_ctl_dma_transfer(ctl_dev, ctl_dev->user_buff, SZ_1M, 0x4C, 0x1);
 	}
 	else{
@@ -532,12 +557,19 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 	struct device			*dev = &pdev->dev;
 	struct omap_fpga_printer_ctl_dev *ctl_dev;
 	struct device *drv_device;
-	dma_cap_mask_t			mask;
 
 	ctl_dev = devm_kzalloc(&pdev->dev, sizeof(struct omap_fpga_printer_ctl_dev),
 				GFP_KERNEL);
 	if (!ctl_dev)
 		return -ENOMEM;
+
+	ctl_dev->user_buff = kzalloc(USER_BUFF_SIZE, GFP_KERNEL);
+
+	if (!ctl_dev->user_buff) {
+		dev_err(&pdev->dev, "user_buff alloc failed\n");
+		err = -ENOMEM;
+		goto err_release_dev;
+	}
 
 	ctl_dev->pdev = pdev;
 
@@ -601,14 +633,30 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 		goto err_cdev_del;
 	}
 
-	dma_cap_zero(mask);
-	dma_cap_set(DMA_SLAVE, mask);
 	ctl_dev->dma = dma_request_chan(pdev->dev.parent, "fpga_printer");
 	if (IS_ERR(ctl_dev->dma)) {
 		err = PTR_ERR(ctl_dev->dma);
 		dev_err(&pdev->dev, "DMA engine request failed: %x\n", err);
 		goto err_device_destroy;
 	}
+#if 0
+	ctl_dev->rx_buf = dma_alloc_coherent(ctl_dev->dma->device->dev, SZ_128K,
+				&ctl_dev->rx_addr, GFP_KERNEL);
+	if (!ctl_dev->rx_buf) {
+		err = -ENOMEM;
+		dev_err(&pdev->dev, "dma_alloc_coherent rx failed\n");
+		goto err_dma_release;
+	}
+	ctl_dev->tx_buf = dma_alloc_coherent(ctl_dev->dma->device->dev, SZ_128K,
+				&ctl_dev->tx_addr, GFP_KERNEL);
+	if (!ctl_dev->tx_buf) {
+		err = -ENOMEM;
+		dma_free_coherent(ctl_dev->dma->device->dev, SZ_1M,
+				  ctl_dev->rx_buf, ctl_dev->rx_addr);
+		dev_err(&pdev->dev, "dma_alloc_coherent tx failed\n");
+		goto err_dma_release;
+	}
+#endif
 	platform_set_drvdata(pdev, ctl_dev);
 	omap_fpga_printer_ctl_debugfs_add(ctl_dev);
 	return 0;
@@ -626,6 +674,8 @@ err_chrdev_unreg:
 err_unmap_res:
 	devm_iounmap(&pdev->dev, ctl_dev->IO_ADDR_R);
 err_release_buf:
+	kfree(ctl_dev->user_buff);
+err_release_dev:
 	devm_kfree(&pdev->dev, ctl_dev);
 	return err;
 }

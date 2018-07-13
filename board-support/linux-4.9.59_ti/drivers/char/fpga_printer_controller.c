@@ -363,7 +363,7 @@ static int omap_fpga_printer_trans_thread(void *arg)
 			}
 		}
 	}
-	else if(ctl_dev->rd_wr_flag == 2){
+	else if(ctl_dev->rd_wr_flag == 3){
 		while(!kthread_should_stop()){
 			unsigned int offset = 0;
 			while(offset < 1024 ){

@@ -2,8 +2,8 @@
 
 MAKE_JOBS ?= 1
 
-all: linux u-boot-spl linux-dtbs busybox ncurses mysql sqlite ubifsimg
-clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean sqlite_clean clean_out_dir
+all: linux u-boot-spl linux-dtbs busybox ncurses mysql sqlite vsftpd ubifsimg app_test
+clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean sqlite_clean vsftpd_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 
 make_init:
@@ -16,6 +16,7 @@ make_init:
 	install -d $(BUSYBOX_OBJ)
 	install -d $(MYSQL_OBJ)
 	install -d $(SQLITE_OBJ)
+	install -d $(VSFTPD_OBJ)
 
 # Kernel build targets
 linux: linux-dtbs
@@ -141,6 +142,7 @@ busybox: make_init
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
 	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) install CONFIG_PREFIX=$(ROOTFS)
 	cp -r $(BUSYBOX_DIR)/examples/bootfloppy/etc/* $(ROOTFS)/etc
+	chmod +x $(ROOTFS)/etc/init.d/rcS
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/lib/*so* $(ROOTFS)/lib/
 	cp -a $(TI_SDK_PATH)/tools/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*so* $(ROOTFS)/lib/
 
@@ -226,6 +228,21 @@ sqlite_clean:
 	@echo =======================================
 	$(MAKE) -C $(SQLITE_OBJ) distclean
 	rm -rf $(TI_SDK_PATH)/out/intermediate/sqlite-autoconf-3240000/*
+
+vsftpd: make_init
+	@echo =====================================
+	@echo     Building the vsftpd
+	@echo =====================================
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(VSFTPD_SRC)
+	mkdir -p $(ROOTFS)/usr/bin
+	install -m 755 $(VSFTPD_SRC)/vsftpd $(ROOTFS)/usr/bin/vsftpd
+	install -m 644 $(VSFTPD_SRC)/vsftpd.conf $(ROOTFS)/etc/vsftpd.conf
+	
+vsftpd_clean:
+	@echo =======================================
+	@echo     Cleaning the vsftpd
+	@echo =======================================
+	$(MAKE) -C $(VSFTPD_SRC) clean
 
 app_test: make_init
 	@echo =====================================

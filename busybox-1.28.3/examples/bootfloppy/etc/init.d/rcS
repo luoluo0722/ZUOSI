@@ -23,6 +23,11 @@
 
 /bin/mkdir -p /dev/shm
 
+#mkdir for vsftpd
+/bin/mkdir -p /var/ftp/pub
+/bin/mkdir -p /usr/share/empty
+/bin/chmod 777 /var/ftp/pub
+
 #echo /sbin/mdev > /proc/sys/kernel/hotplug
 
 /sbin/mdev -s
@@ -31,9 +36,9 @@
 
 /sbin/ifconfig lo 127.0.0.1 netmask 255.0.0.0
 
-/sbin/ifconfig eth0 192.168.1.70
+/sbin/ifconfig eth0 192.168.0.70
 /sbin/ifconfig eth0 netmask 255.255.255.0
-/sbin/route add default gw 192.168.1.1 eth0
+/sbin/route add default gw 192.168.0.1 eth0
 
 #/sbin/ifconfig eth1 192.168.1.71 netmask 255.255.255.0
 #/sbin/route add default gw 192.168.1.1 eth1

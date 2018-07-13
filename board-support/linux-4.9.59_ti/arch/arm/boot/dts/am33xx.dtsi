@@ -669,7 +669,7 @@
 
 				interrupts = <18>;
 				interrupt-names = "mc";
-				dr_mode = "peripheral";
+				dr_mode = "otg";
 				mentor,multipoint = <1>;
 				mentor,num-eps = <16>;
 				mentor,ram-bits = <12>;
@@ -716,7 +716,7 @@
 				reg-names = "mc", "control";
 				interrupts = <19>;
 				interrupt-names = "mc";
-				dr_mode = "host";
+				dr_mode = "otg";
 				mentor,multipoint = <1>;
 				mentor,num-eps = <16>;
 				mentor,ram-bits = <12>;
@@ -1059,8 +1059,8 @@
 			ti,no-idle-on-init;
 			reg = <0x50000000 0x2000>;
 			interrupts = <100>;
-			dmas = <&edma 52 0>, <&edma 54 2>;
-			dma-names = "rxtx", "fpga_printer";
+			dmas = <&edma 52 0>;
+			dma-names = "rxtx";
 			gpmc,num-cs = <7>;
 			gpmc,num-waitpins = <2>;
 			#address-cells = <2>;

@@ -546,6 +546,7 @@
 };
 
 &usb0 {
+	dr_mode = "peripheral";
 	status = "okay";
 };
 
@@ -641,6 +642,8 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&gpmc_pins_default>;
+	dmas = <&edma 52 0>, <&edma 54 2>;
+	dma-names = "rxtx", "fpga_printer";
 	ranges = <0 0 0x08000000 0x8000000 /* CS0: 128MB for NAND */
 				2 0 0x10000000 0x8000000>;	/* CS1: 128MB for FPGA */
 	nand@0,0 {

@@ -734,7 +734,7 @@
 		rb-gpios = <&gpmc 0 GPIO_ACTIVE_HIGH>; /* gpmc_wait0 */
 		ti,nand-xfer-type = "prefetch-dma";
 		bank-width = <2>;
-		gpmc,device-width = <1>;
+		gpmc,device-width = <2>;
 		gpmc,mux-add-data = <0>;
 		gpmc,wait-pin = <0>;
 		gpmc,burst-length = <4>;

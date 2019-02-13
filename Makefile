@@ -2,7 +2,8 @@
 
 MAKE_JOBS ?= 1
 
-all: linux u-boot-spl linux-dtbs busybox ncurses mysql sqlite vsftpd ubifsimg app_test
+all: ubifsimg
+ubifsimg: linux u-boot-spl linux-dtbs busybox ncurses mysql sqlite vsftpd  app_test
 clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean sqlite_clean vsftpd_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 

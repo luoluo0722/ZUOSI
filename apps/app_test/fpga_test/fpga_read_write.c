@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define FPGA_DEVICE "/dev/fpga_printer_ctl"
 int main(int argc,char **argv)
@@ -11,27 +12,38 @@ int main(int argc,char **argv)
 	int fd;
 	unsigned char *buf;
 	int i;
+	int is_write;
+	int remain_arg_count;
 
 	buf =malloc(1024*1024);
-
-	for(i = 0;i < 1024*1024;i += 2){
-		buf[i] = 0x55;
-		buf[i + 1] = 0xAA;
+	if(buf == NULL){
+		return -1;
 	}
-
 	fd = open(FPGA_DEVICE, O_RDWR);
 	if(fd < 0){
 		printf("open %s error\n", FPGA_DEVICE);
 		return 1;
 	}
 
-	buf[0] = 0x4C;
+	buf[0] = strtoul(argv[2], 0, 0);
 	buf[1] = 0x0;
 
-	if(argc == 1){
+	if(strcmp(argv[1], "0") == 0){
+		is_write = 0;
+	}else if(strcmp(argv[1], "1") == 0){
+		is_write = 1;
+		remain_arg_count = argc - 3;
+		i = 0;
+		while(i < remain_arg_count){
+			buf[i + 2] = strtoul(argv[i + 3], 0, 0);
+			i ++;
+		}
+	}
+
+	if(is_write == 0){
 		printf("read test\n");
 		read(fd, buf, 1024*1024);
-	}else if(argc == 2){
+	}else if(is_write == 1){
 		printf("write test\n");
 		write(fd, buf, 1024*1024);
 	}

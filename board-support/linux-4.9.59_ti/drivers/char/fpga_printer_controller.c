@@ -322,6 +322,12 @@ static const struct file_operations omap_fpga_printer_ctl_fops = {
 
 static int omap_fpga_printer_ctl_get_dt_info(struct device *dev, struct omap_fpga_printer_ctl_dev *ctl_dev)
 {
+	struct device_node *np = dev->of_node;
+	if (of_property_read_u32(np, "reg", &ctl_dev->gpmc_cs) < 0) {
+		dev_err(dev, "%s has no 'reg' property\n",
+			np->full_name);
+		return -ENODEV;
+	}
 	return 0;
 }
 
@@ -586,7 +592,7 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 
 	if (!ctl_dev->name) {
 		ctl_dev->name = devm_kasprintf(&pdev->dev, GFP_KERNEL,
-					   "omap2-nand.%d", ctl_dev->gpmc_cs);
+					   "%s_%d", DEVICE_NAME, ctl_dev->gpmc_cs);
 		if (!ctl_dev->name) {
 			dev_err(&pdev->dev, "Failed to set fpga printer dev name\n");
 			err =  -ENOMEM;
@@ -627,7 +633,7 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 
 	drv_device = device_create(ctl_dev->drv_class, NULL,
 				   MKDEV(MAJOR(ctl_dev->dev_id), 0),
-				   NULL, DEVICE_NAME);
+				   NULL, ctl_dev->name);
 	if (IS_ERR(drv_device)) {
 		dev_err(&pdev->dev, "failed to create device\n");
 		goto err_cdev_del;

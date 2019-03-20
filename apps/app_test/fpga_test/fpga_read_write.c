@@ -19,23 +19,23 @@ int main(int argc,char **argv)
 	if(buf == NULL){
 		return -1;
 	}
-	fd = open(FPGA_DEVICE, O_RDWR);
+	fd = open(argv[1], O_RDWR);
 	if(fd < 0){
 		printf("open %s error\n", FPGA_DEVICE);
 		return 1;
 	}
 
-	buf[0] = strtoul(argv[2], 0, 0);
+	buf[0] = strtoul(argv[3], 0, 0);
 	buf[1] = 0x0;
 
-	if(strcmp(argv[1], "0") == 0){
+	if(strcmp(argv[2], "0") == 0){
 		is_write = 0;
-	}else if(strcmp(argv[1], "1") == 0){
+	}else if(strcmp(argv[2], "1") == 0){
 		is_write = 1;
 		remain_arg_count = argc - 3;
 		i = 0;
 		while(i < remain_arg_count){
-			buf[i + 2] = strtoul(argv[i + 3], 0, 0);
+			buf[i + 2] = strtoul(argv[i + 4], 0, 0);
 			i ++;
 		}
 	}

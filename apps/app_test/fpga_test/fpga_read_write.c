@@ -32,7 +32,7 @@ int main(int argc,char **argv)
 		is_write = 0;
 	}else if(strcmp(argv[2], "1") == 0){
 		is_write = 1;
-		remain_arg_count = argc - 3;
+		remain_arg_count = argc - 4;
 		i = 0;
 		while(i < remain_arg_count){
 			buf[i + 2] = strtoul(argv[i + 4], 0, 0);

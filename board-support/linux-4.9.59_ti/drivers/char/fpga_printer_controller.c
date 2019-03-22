@@ -48,7 +48,8 @@ struct omap_fpga_printer_ctl_dev {
 	struct class *drv_class;
 	int gpmc_cs;
 	char *user_buff;
-	unsigned long phys_base;
+	unsigned long read_phys_base;
+	unsigned long write_phys_base;
 	struct dentry *debug_dir;
 	struct dentry *debug_entry;
 	struct task_struct *trans_thread;
@@ -65,6 +66,14 @@ struct omap_fpga_printer_ctl_dev {
 	void __iomem *IO_ADDR_W;
 };
 
+struct device_hw_info{
+	int deveic_num;
+	int cs[2];
+	struct resource *res[2];
+
+};
+
+static struct device_hw_info fpga_hw_info = {0};
 /*
  * omap_fpga_printer_ctl_dma_callback: callback on the completion of dma transfer
  * @data: pointer to completion data structure
@@ -100,8 +109,8 @@ static inline int omap_fpga_printer_ctl_dma_transfer(struct omap_fpga_printer_ct
 	}
 
 	memset(&cfg, 0, sizeof(cfg));
-	cfg.src_addr = ctl_dev->phys_base + offset;
-	cfg.dst_addr = ctl_dev->phys_base + offset;
+	cfg.src_addr = ctl_dev->read_phys_base + offset;
+	cfg.dst_addr = ctl_dev->write_phys_base + offset;
 	cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
 	cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
 	cfg.src_maxburst = SZ_32K;
@@ -320,10 +329,10 @@ static const struct file_operations omap_fpga_printer_ctl_fops = {
 	.write = omap_fpga_printer_ctl_write,
 };
 
-static int omap_fpga_printer_ctl_get_dt_info(struct device *dev, struct omap_fpga_printer_ctl_dev *ctl_dev)
+static int omap_fpga_printer_ctl_get_dt_info(struct device *dev, struct device_hw_info *hw_info)
 {
 	struct device_node *np = dev->of_node;
-	if (of_property_read_u32(np, "reg", &ctl_dev->gpmc_cs) < 0) {
+	if (of_property_read_u32(np, "reg", &hw_info->cs[hw_info->deveic_num]) < 0) {
 		dev_err(dev, "%s has no 'reg' property\n",
 			np->full_name);
 		return -ENODEV;
@@ -564,6 +573,18 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 	struct omap_fpga_printer_ctl_dev *ctl_dev;
 	struct device *drv_device;
 
+	if (dev->of_node && !omap_fpga_printer_ctl_get_dt_info(dev, &fpga_hw_info)) {
+		dev_err(&pdev->dev, "got the cs = %d\n", fpga_hw_info.cs[fpga_hw_info.deveic_num]);
+	} else {
+			return -EFAULT;
+	}
+	fpga_hw_info.res[fpga_hw_info.deveic_num] = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+
+	fpga_hw_info.deveic_num++;
+
+	if(fpga_hw_info.deveic_num != 2){
+		return 0;
+	}
 	ctl_dev = devm_kzalloc(&pdev->dev, sizeof(struct omap_fpga_printer_ctl_dev),
 				GFP_KERNEL);
 	if (!ctl_dev)
@@ -578,16 +599,6 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 	}
 
 	ctl_dev->pdev = pdev;
-
-	if (dev->of_node) {
-		if (omap_fpga_printer_ctl_get_dt_info(dev, ctl_dev)){
-			err = -EFAULT;
-			goto err_release_buf;
-		}
-	} else {
-		err = -EFAULT;
-		goto err_release_buf;
-	}
 	sema_init(&ctl_dev->sem, 1);
 
 	if (!ctl_dev->name) {
@@ -600,16 +611,43 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 		}
 	}
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	ctl_dev->IO_ADDR_R = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(ctl_dev->IO_ADDR_R)){
-		err = PTR_ERR(ctl_dev->IO_ADDR_R);
-		dev_err(&pdev->dev, "devm_ioremap_resource() failed: %d\n", err);
-		goto err_release_buf;
-	}
+	if(fpga_hw_info.cs[0] == 1){
+		res = fpga_hw_info.res[0];
+		ctl_dev->IO_ADDR_R = devm_ioremap_resource(&pdev->dev, res);
+		if (IS_ERR(ctl_dev->IO_ADDR_R)){
+			err = PTR_ERR(ctl_dev->IO_ADDR_R);
+			dev_err(&pdev->dev, "devm_ioremap_resource() failed: %d\n", err);
+			goto err_release_buf;
+		}
+		ctl_dev->read_phys_base = res->start;
 
-	ctl_dev->phys_base = res->start;
-	ctl_dev->IO_ADDR_W = ctl_dev->IO_ADDR_R;
+		res = fpga_hw_info.res[1];
+		ctl_dev->IO_ADDR_W = devm_ioremap_resource(&pdev->dev, res);
+		if (IS_ERR(ctl_dev->IO_ADDR_W)){
+			err = PTR_ERR(ctl_dev->IO_ADDR_W);
+			dev_err(&pdev->dev, "devm_ioremap_resource() failed: %d\n", err);
+			goto err_release_buf;
+		}
+		ctl_dev->write_phys_base = res->start;
+	}else{
+		res = fpga_hw_info.res[1];
+		ctl_dev->IO_ADDR_R = devm_ioremap_resource(&pdev->dev, res);
+		if (IS_ERR(ctl_dev->IO_ADDR_R)){
+			err = PTR_ERR(ctl_dev->IO_ADDR_R);
+			dev_err(&pdev->dev, "devm_ioremap_resource() failed: %d\n", err);
+			goto err_release_buf;
+		}
+		ctl_dev->read_phys_base = res->start;
+
+		res = fpga_hw_info.res[0];
+		ctl_dev->IO_ADDR_W = devm_ioremap_resource(&pdev->dev, res);
+		if (IS_ERR(ctl_dev->IO_ADDR_W)){
+			err = PTR_ERR(ctl_dev->IO_ADDR_W);
+			dev_err(&pdev->dev, "devm_ioremap_resource() failed: %d\n", err);
+			goto err_release_buf;
+		}
+		ctl_dev->write_phys_base = res->start;
+	}
 	ctl_dev->dev_id = MKDEV(0, 0);
 
 	err = alloc_chrdev_region(&ctl_dev->dev_id, 0, 1, DEVICE_NAME);
@@ -633,7 +671,7 @@ static int omap_fpga_printer_ctl_probe(struct platform_device *pdev)
 
 	drv_device = device_create(ctl_dev->drv_class, NULL,
 				   MKDEV(MAJOR(ctl_dev->dev_id), 0),
-				   NULL, ctl_dev->name);
+				   NULL, DEVICE_NAME);
 	if (IS_ERR(drv_device)) {
 		dev_err(&pdev->dev, "failed to create device\n");
 		goto err_cdev_del;
@@ -679,6 +717,7 @@ err_chrdev_unreg:
 	unregister_chrdev_region(ctl_dev->dev_id, 1);
 err_unmap_res:
 	devm_iounmap(&pdev->dev, ctl_dev->IO_ADDR_R);
+	devm_iounmap(&pdev->dev, ctl_dev->IO_ADDR_W);
 err_release_buf:
 	kfree(ctl_dev->user_buff);
 err_release_dev:
@@ -688,7 +727,12 @@ err_release_dev:
 
 static int omap_fpga_printer_ctl_remove(struct platform_device *pdev)
 {
-	struct omap_fpga_printer_ctl_dev *ctl_dev = platform_get_drvdata(pdev);
+	struct omap_fpga_printer_ctl_dev *ctl_dev;
+	fpga_hw_info.deveic_num--;
+	if(fpga_hw_info.deveic_num != 0){
+		return 0;
+	}
+	ctl_dev = platform_get_drvdata(pdev);
 
 	omap_fpga_printer_ctl_debugfs_rm(ctl_dev);
 	dma_release_channel(ctl_dev->dma);
@@ -697,6 +741,7 @@ static int omap_fpga_printer_ctl_remove(struct platform_device *pdev)
 	class_destroy(ctl_dev->drv_class);
 	unregister_chrdev_region(ctl_dev->dev_id, 1);
 	devm_iounmap(&pdev->dev, ctl_dev->IO_ADDR_R);
+	devm_iounmap(&pdev->dev, ctl_dev->IO_ADDR_W);
 	devm_kfree(&pdev->dev, ctl_dev);
 	return 0;
 }

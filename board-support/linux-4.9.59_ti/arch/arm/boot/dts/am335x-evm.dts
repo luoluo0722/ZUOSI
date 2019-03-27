@@ -644,12 +644,12 @@
 	pinctrl-0 = <&gpmc_pins_default>;
 	dmas = <&edma 52 0>, <&edma 54 2>;
 	dma-names = "rxtx", "fpga_printer";
-	ranges = <0 0 0x08000000 0x8000000 /* CS0: 128MB for NAND */
-				1 0 0x10000000 0x1000000
-				2 0 0x11000000 0x1000000>;	/* CS1: 128MB for FPGA */
+	ranges = <0 0 0x08000000 0x1000000 /* CS0: 16MB for NAND */
+				1 0 0x10000000 0x1000000  /* CS1: 16MB for FPGA */
+				2 0 0x18000000 0x1000000>;	/* CS2: 16MB for FPGA */
 	nand@0,0 {
 		compatible = "ti,omap2-nand";
-		reg = <0 0 0x8000000>; /* CS0, offset 0, IO size 4 */
+		reg = <0 0 0x1000000>; /* CS0, offset 0, IO size 4 */
 		interrupt-parent = <&gpmc>;
 		interrupts = <0 IRQ_TYPE_NONE>, /* fifoevent */
 			     <1 IRQ_TYPE_NONE>;	/* termcount */

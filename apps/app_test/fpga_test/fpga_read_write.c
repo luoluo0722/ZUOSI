@@ -42,10 +42,10 @@ int main(int argc,char **argv)
 
 	if(is_write == 0){
 		printf("read test\n");
-		read(fd, buf, 1024*1024);
+		read(fd, buf, 4);
 	}else if(is_write == 1){
 		printf("write test\n");
-		write(fd, buf, 1024*1024);
+		write(fd, buf, 4);
 	}
 	close(fd);
 	return 0;

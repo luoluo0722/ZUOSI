@@ -725,6 +725,10 @@
 			label = "NAND.file-system";
 			reg = <0x00A00000 0x06400000>;
 		};
+		partition@10 {
+			label = "NAND.data";
+			reg = <0x00A00000 0x09200000>;
+		};
 	};
 	fpga_printer_controller@1,0 {
 		compatible = "zuosi,omap2-fpga-printer-ctl";

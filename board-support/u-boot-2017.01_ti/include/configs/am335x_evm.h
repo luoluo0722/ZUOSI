@@ -163,17 +163,21 @@
 			"setenv console ttyO0,115200n8;" \
 		"fi;\0" \
 	"xflash=echo Update Firmware...; "\
-		"nand erase.chip; "\
 		"mmc rescan; "\
 		"mw.b 0x82000000 0xFF; "\
+		"nand erase.part NAND.SPL; "\
 		"fatload mmc 0 0x82000000 MLO; "\
 		"nand write 0x82000000 NAND.SPL ${filesize}; "\
+		"nand erase.part NAND.u-boot; "\
 		"fatload mmc 0 0x82000000 u-boot.img; "\
 		"nand write 0x82000000 NAND.u-boot ${filesize}; "\
+		"nand erase.part NAND.u-boot-spl-os; "\
 		"fatload mmc 0 0x82000000 am335x-evm.dtb; "\
 		"nand write 0x82000000 NAND.u-boot-spl-os ${filesize}; "\
+		"nand erase.part NAND.kernel; "\
 		"fatload mmc 0 0x82000000 zImage; "\
 		"nand write 0x82000000 NAND.kernel ${filesize}; "\
+		"nand erase.part NAND.file-system; "\
 		"fatload mmc 0 0x82000000 am335xubi.img; "\
 		"nand write 0x82000000 NAND.file-system ${filesize}; "\
 		"echo Update Complete...;\0"\
@@ -262,7 +266,8 @@
 					"128k(NAND.u-boot-env)," \
 					"128k(NAND.u-boot-env.backup1)," \
 					"8m(NAND.kernel)," \
-					"100m(NAND.file-system)"
+					"100m(NAND.file-system)," \
+					"-(NAND.data)"
 #define CONFIG_SYS_NAND_U_BOOT_OFFS	0x000c0000
 /* NAND: SPL related configs */
 #ifdef CONFIG_SPL_NAND_SUPPORT

@@ -3,7 +3,7 @@
 MAKE_JOBS ?= 1
 
 all: ubifsimg
-ubifsimg: linux u-boot-spl linux-dtbs busybox vsftpd  app_test
+ubifsimg: linux u-boot-spl linux-dtbs busybox vsftpd app_test mtd-utils sqlite
 clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean sqlite_clean vsftpd_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 
@@ -17,7 +17,7 @@ make_init:
 	install -d $(BUSYBOX_OBJ)
 	install -d $(MYSQL_OBJ)
 	install -d $(SQLITE_OBJ)
-	install -d $(VSFTPD_OBJ)
+	install -d $(MTDUTILS_OBJ)
 
 # Kernel build targets
 linux: linux-dtbs
@@ -168,6 +168,16 @@ ncurses:make_init
 	pushd $(NCURSES_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) $(NCURSES_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static;popd
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ)
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ) install DESTDIR=$(NCURSES_DESTDIR)
+
+mtd-utils:make_init
+	@echo =====================================
+	@echo     Building the mtd-utils
+	@echo =====================================
+	pushd $(MTDUTILS_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(MTDUTILS_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static --without-jffs --without-ubifs --without-xattr --without-lzo --with-selinux --without-crypto ;popd
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MTDUTILS_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MTDUTILS_OBJ) install DESTDIR=$(MTDUTILS_DESTDIR)
+	rm -rf $(MTDUTILS_DESTDIR)/usr/share
+	cp -ar $(MTDUTILS_DESTDIR)/usr $(ROOTFS)/
 	
 ncurses_clean:
 	@echo =======================================

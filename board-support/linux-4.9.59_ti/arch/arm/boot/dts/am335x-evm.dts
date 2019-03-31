@@ -723,7 +723,7 @@
 		};
 		partition@9 {
 			label = "NAND.file-system";
-			reg = <0x00A00000 0x0F600000>;
+			reg = <0x00A00000 0x06400000>;
 		};
 	};
 	fpga_printer_controller@1,0 {

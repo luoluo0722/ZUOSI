@@ -11,6 +11,7 @@ make_init:
 	install -d $(ROOTFS)
 	install -d $(ROOTFS)/etc
 	install -d $(ROOTFS)/etc/init.d
+	install -d $(ROOTFS)/usr/lib
 	install -d $(KERNEL_OBJ)
 	install -d $(UBOOT_OBJ)
 	install -d $(NCURSES_OBJ)
@@ -172,11 +173,11 @@ ncurses:make_init
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ)
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ) install DESTDIR=$(NCURSES_DESTDIR)
 
-mtd-utils:make_init lzo zlib e2fsprogs
+mtd-utils:make_init
 	@echo =====================================
 	@echo     Building the mtd-utils
 	@echo =====================================
-	pushd $(MTDUTILS_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(MTDUTILS_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static --without-jffs --without-xattr --without-lzo --with-selinux --without-crypto ;popd
+	pushd $(MTDUTILS_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(MTDUTILS_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static --without-jffs --without-xattr --without-lzo --with-selinux --without-crypto --without-ubifs;popd
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MTDUTILS_OBJ)
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MTDUTILS_OBJ) install DESTDIR=$(MTDUTILS_DESTDIR)
 	rm -rf $(MTDUTILS_DESTDIR)/usr/share

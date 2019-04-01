@@ -20,6 +20,7 @@ make_init:
 	install -d $(MTDUTILS_OBJ)
 	install -d $(ZLIB_OBJ)
 	install -d $(LZO_OBJ)
+	install -d $(E2FSPROGS_OBJ)
 
 # Kernel build targets
 linux: linux-dtbs
@@ -285,6 +286,14 @@ lzo:make_init
 	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so $(ROOTFS)/usr/lib
 	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1 $(ROOTFS)/usr/lib
 	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1.2.11 $(ROOTFS)/usr/lib
+
+e2fsprogs:make_init
+	@echo =====================================
+	@echo     Building the mtd-utils
+	@echo =====================================
+	pushd $(E2FSPROGS_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(E2FSPROGS_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr;popd
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(E2FSPROGS_OBJ) all-libs-recursive
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(E2FSPROGS_OBJ) install-libs DESTDIR=$(E2FSPROGS_DESTDIR)
 
 clean_out_dir:
 	@echo =======================================

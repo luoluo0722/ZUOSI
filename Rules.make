@@ -86,6 +86,7 @@ export MYSQL_DESTDIR=$(OUT_DIR)/mysql-5.1.73
 export SQLITE_DESTDIR=$(OUT_DIR)/sqlite-autoconf-3240000
 export MTDUTILS_DESTDIR=$(OUT_DIR)/mtd-utils
 export ZLIB_DESTDIR=$(OUT_DIR)/zlib
+export LZO_DESTDIR=$(OUT_DIR)/lzo
 export E2FSPROGS_DESTDIR=$(OUT_DIR)/e2fsprogs
 
 export MKUBIFS_ARGS= -m 2048 -e 126976 -c 720

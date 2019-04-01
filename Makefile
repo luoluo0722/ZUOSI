@@ -142,8 +142,8 @@ busybox: make_init
 	@echo =====================================
 
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) zuosi_defconfig
-	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS)
+	$(MAKE) -j $(MAKE_JOBS) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS) zuosi_defconfig
+	$(MAKE) -j $(MAKE_JOBS) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) CONFIG_PREFIX=$(ROOTFS)
 	pushd $(ROOTFS);mkdir -p dev etc lib usr var proc tmp home root mnt sys;popd
 	$(MAKE) -C $(BUSYBOX_DIR) CROSS_COMPILE=$(CROSS_COMPILE) O=$(BUSYBOX_OBJ) install CONFIG_PREFIX=$(ROOTFS)
 	cp -r $(BUSYBOX_DIR)/examples/bootfloppy/etc/* $(ROOTFS)/etc
@@ -170,16 +170,16 @@ ncurses:make_init
 	@echo     Building the ncurses for mysql
 	@echo =====================================
 	pushd $(NCURSES_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) $(NCURSES_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ)
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(NCURSES_OBJ) install DESTDIR=$(NCURSES_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(NCURSES_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(NCURSES_OBJ) install DESTDIR=$(NCURSES_DESTDIR)
 
 mtd-utils:make_init
 	@echo =====================================
 	@echo     Building the mtd-utils
 	@echo =====================================
 	pushd $(MTDUTILS_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(MTDUTILS_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --enable-static --without-jffs --without-xattr --without-lzo --with-selinux --without-crypto --without-ubifs;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MTDUTILS_OBJ)
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MTDUTILS_OBJ) install DESTDIR=$(MTDUTILS_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(MTDUTILS_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(MTDUTILS_OBJ) install DESTDIR=$(MTDUTILS_DESTDIR)
 	rm -rf $(MTDUTILS_DESTDIR)/usr/share
 	cp -ar $(MTDUTILS_DESTDIR)/usr $(ROOTFS)/
 	
@@ -197,9 +197,9 @@ mysql: make_init
 	pushd $(MYSQL_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) $(MYSQL_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr --with-named-curses-libs=$(NCURSES_DESTDIR)/usr/lib/libncurses.a --without-debug --without-docs --without-man --without-bench --with-charset=gb2312 --with-extra-charsets=ascii,latin1,utf8 --enable-static;popd
 	#cp $(MYSQL_SRC)/scripts/*.sql $(MYSQL_OBJ)/scripts/
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(MYSQL_OBJ)
 	pushd $(MYSQL_SRC)/sql;cp gen_lex_hash_x86 gen_lex_hash;cp lex_hash_new.h lex_hash.h;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(MYSQL_OBJ) install DESTDIR=$(MYSQL_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(MYSQL_OBJ) install DESTDIR=$(MYSQL_DESTDIR)
 	rm -rf $(MYSQL_DESTDIR)/usr/lib/mysql/*.a
 	rm -rf $(MYSQL_DESTDIR)/usr/lib/mysql/plugin/*.a
 	rm -rf $(MYSQL_DESTDIR)/usr/mysql-test
@@ -227,8 +227,8 @@ sqlite: make_init
 	@echo =====================================
 	pushd $(SQLITE_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) $(SQLITE_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr ;popd
 	#cp $(MYSQL_SRC)/scripts/*.sql $(MYSQL_OBJ)/scripts/
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(SQLITE_OBJ)
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(SQLITE_OBJ) install DESTDIR=$(SQLITE_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(SQLITE_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(SQLITE_OBJ) install DESTDIR=$(SQLITE_DESTDIR)
 	PATH=$(GCC_BIN_PATH):$(PATH) $(STRIP) $(SQLITE_DESTDIR)/usr/bin/*
 	PATH=$(GCC_BIN_PATH):$(PATH) $(STRIP) $(SQLITE_DESTDIR)/usr/lib/*.so
 	rm -rf $(SQLITE_DESTDIR)/usr/lib/*.a
@@ -248,7 +248,7 @@ vsftpd: make_init
 	@echo =====================================
 	@echo     Building the vsftpd
 	@echo =====================================
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(VSFTPD_SRC)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(VSFTPD_SRC)
 	mkdir -p $(ROOTFS)/usr/bin
 	install -m 755 $(VSFTPD_SRC)/vsftpd $(ROOTFS)/usr/bin/vsftpd
 	install -m 644 $(VSFTPD_SRC)/vsftpd.conf $(ROOTFS)/etc/vsftpd.conf
@@ -263,15 +263,15 @@ app_test: make_init
 	@echo =====================================
 	@echo     Building the app_test
 	@echo =====================================
-	$(MAKE) -C $(APP_TEST_SRC) CROSS_COMPILE=$(CROSS_COMPILE) ROOTFS=$(ROOTFS)
+	$(MAKE) -j $(MAKE_JOBS) -C $(APP_TEST_SRC) CROSS_COMPILE=$(CROSS_COMPILE) ROOTFS=$(ROOTFS)
 
 zlib:make_init
 	@echo =====================================
 	@echo     Building the mtd-utils
 	@echo =====================================
 	pushd $(ZLIB_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(ZLIB_SRC)/configure --prefix=/usr;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(ZLIB_OBJ)
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(ZLIB_OBJ) install DESTDIR=$(ZLIB_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(ZLIB_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(ZLIB_OBJ) install DESTDIR=$(ZLIB_DESTDIR)
 	cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so $(ROOTFS)/usr/lib
 	cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1 $(ROOTFS)/usr/lib
 	cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1.2.11 $(ROOTFS)/usr/lib
@@ -281,20 +281,16 @@ lzo:make_init
 	@echo     Building the mtd-utils
 	@echo =====================================
 	pushd $(LZO_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(LZO_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(LZO_OBJ)
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(LZO_OBJ) install DESTDIR=$(LZO_DESTDIR)
-	#rm -rf $(MTDUTILS_DESTDIR)/usr/share
-	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so $(ROOTFS)/usr/lib
-	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1 $(ROOTFS)/usr/lib
-	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1.2.11 $(ROOTFS)/usr/lib
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(LZO_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(LZO_OBJ) install DESTDIR=$(LZO_DESTDIR)
 
 e2fsprogs:make_init
 	@echo =====================================
 	@echo     Building the mtd-utils
 	@echo =====================================
 	pushd $(E2FSPROGS_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(E2FSPROGS_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr;popd
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(E2FSPROGS_OBJ) all-libs-recursive
-	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(E2FSPROGS_OBJ) install-libs DESTDIR=$(E2FSPROGS_DESTDIR)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(E2FSPROGS_OBJ) all-libs-recursive
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(E2FSPROGS_OBJ) install-libs DESTDIR=$(E2FSPROGS_DESTDIR)
 
 clean_out_dir:
 	@echo =======================================

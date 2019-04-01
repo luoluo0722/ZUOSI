@@ -62,6 +62,7 @@ export VSFTPD_SRC=$(APP_SRC_DIR)/vsftpd-2.3.4
 export APP_TEST_SRC=$(APP_SRC_DIR)/app_test
 export MTDUTILS_SRC=$(APP_SRC_DIR)/mtd-utils
 export ZLIB_SRC=$(APP_SRC_DIR)/zlib
+export LZO_SRC=$(APP_SRC_DIR)/lzo
 
 #root of the target file system for installing applications
 export ROOTFS=$(OUT_DIR)/rootfs
@@ -76,12 +77,14 @@ export NCURSES_OBJ=$(INTERMEDIATES_DIR)/ncurses_obj
 export VSFTPD_OBJ=$(INTERMEDIATES_DIR)/vsftpd_obj
 export MTDUTILS_OBJ=$(INTERMEDIATES_DIR)/mtdutils_obj
 export ZLIB_OBJ=$(INTERMEDIATES_DIR)/zlib_obj
+export LZO_OBJ=$(INTERMEDIATES_DIR)/lzo_obj
 
 export NCURSES_DESTDIR=$(OUT_DIR)/ncurses-5.9
 export MYSQL_DESTDIR=$(OUT_DIR)/mysql-5.1.73
 export SQLITE_DESTDIR=$(OUT_DIR)/sqlite-autoconf-3240000
 export MTDUTILS_DESTDIR=$(OUT_DIR)/mtd-utils
 export ZLIB_DESTDIR=$(OUT_DIR)/zlib
+export LZO_DESTDIR=$(OUT_DIR)/lzo
 
 export MKUBIFS_ARGS= -m 2048 -e 126976 -c 720
 export UBINIZE_ARGS= -m 2048 -p 128KiB -s 512 -O 2048

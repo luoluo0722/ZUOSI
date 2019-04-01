@@ -19,6 +19,7 @@ make_init:
 	install -d $(SQLITE_OBJ)
 	install -d $(MTDUTILS_OBJ)
 	install -d $(ZLIB_OBJ)
+	install -d $(LZO_OBJ)
 
 # Kernel build targets
 linux: linux-dtbs
@@ -269,10 +270,21 @@ zlib:make_init
 	pushd $(ZLIB_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(ZLIB_SRC)/configure --prefix=/usr;popd
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(ZLIB_OBJ)
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(ZLIB_OBJ) install DESTDIR=$(ZLIB_DESTDIR)
-	#rm -rf $(MTDUTILS_DESTDIR)/usr/share
 	cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so $(ROOTFS)/usr/lib
 	cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1 $(ROOTFS)/usr/lib
 	cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1.2.11 $(ROOTFS)/usr/lib
+
+lzo:make_init
+	@echo =====================================
+	@echo     Building the mtd-utils
+	@echo =====================================
+	pushd $(LZO_OBJ);PATH=$(GCC_BIN_PATH):$(PATH) CC=arm-linux-gnueabihf-gcc $(LZO_SRC)/configure --host=arm-linux-gnueabihf --prefix=/usr;popd
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(LZO_OBJ)
+	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -C $(LZO_OBJ) install DESTDIR=$(LZO_DESTDIR)
+	#rm -rf $(MTDUTILS_DESTDIR)/usr/share
+	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so $(ROOTFS)/usr/lib
+	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1 $(ROOTFS)/usr/lib
+	#cp -ar $(ZLIB_DESTDIR)/usr/lib/libz.so.1.2.11 $(ROOTFS)/usr/lib
 
 clean_out_dir:
 	@echo =======================================

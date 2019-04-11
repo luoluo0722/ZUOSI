@@ -726,8 +726,12 @@
 			reg = <0x00A00000 0x06400000>;
 		};
 		partition@10 {
-			label = "NAND.data";
-			reg = <0x00A00000 0x09200000>;
+                        label = "NAND.data1";
+                        reg = <0x06E00000 0x04600000>;
+                };
+		partition@11 {
+			label = "NAND.data2";
+			reg = <0x0B400000 0x04C00000>;
 		};
 	};
 	fpga_printer_controller@1,0 {

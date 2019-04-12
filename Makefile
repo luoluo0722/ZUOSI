@@ -292,6 +292,12 @@ e2fsprogs:make_init
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(E2FSPROGS_OBJ) all-libs-recursive
 	PATH=$(GCC_BIN_PATH):$(PATH) $(MAKE) -j $(MAKE_JOBS) -C $(E2FSPROGS_OBJ) install-libs DESTDIR=$(E2FSPROGS_DESTDIR)
 
+henhouse:make_init
+	@echo =====================================
+	@echo     Building the henhouse
+	@echo =====================================
+	$(MAKE) -j $(MAKE_JOBS) -C $(HENHOUSE_SRC)
+
 clean_out_dir:
 	@echo =======================================
 	@echo     Cleaning out_dir

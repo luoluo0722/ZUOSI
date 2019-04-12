@@ -64,6 +64,7 @@ export MTDUTILS_SRC=$(APP_SRC_DIR)/mtd-utils
 export ZLIB_SRC=$(APP_SRC_DIR)/zlib
 export LZO_SRC=$(APP_SRC_DIR)/lzo
 export E2FSPROGS_SRC=$(APP_SRC_DIR)/e2fsprogs
+export HENHOUSE_SRC=$(APP_SRC_DIR)/henhouse
 
 #root of the target file system for installing applications
 export ROOTFS=$(OUT_DIR)/rootfs

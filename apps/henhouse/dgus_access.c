@@ -10,6 +10,9 @@
 #include <pthread.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <pthread.h> 
+
+#include "dgus_access.h"
 
 #define TTY_DEVICE "/dev/ttyS01"
 
@@ -17,6 +20,68 @@
 #define TRUE 0
 #define HEADER_BYTE1 0x5a
 #define HEADER_BYTE2 0xa5
+
+#define DATA_BUF_LEN 256
+
+#define VAR_ADDRES_REPORT_BASE       VAR_ADDRES_PAGE05_SETZERO
+#define VAR_ADDRES_PAGE05_SETZERO                       0x0010
+
+#define VAR_ADDRES_PAGE_ONEKEYFLUSHCONTROL              0x0011
+
+#define VAR_ADDRES_PAGE06_FLUSHBYEQINTERVAL             0x0012
+#define VAR_ADDRES_PAGE06_FLUSHBYDATE                   0x0013
+#define VAR_ADDRES_PAGE06_FLUSHAFTERDOSING              0x0014
+
+#define VAR_ADDRES_PAGE07_CONFIRMORRESET                0x0015
+
+#define VAR_ADDRES_PAGE08_NUMKEY                        0x0016
+#define VAR_ADDRES_PAGE08_CONFIRMORRESET                0x0017
+
+#define VAR_ADDRES_PAGE09_CONFIRMORRESET                0x0018
+
+#define VAR_ADDRES_PAGE10_LINESELECTION1_BASE           0x0019
+#define VAR_ADDRES_PAGE11_LINESELECTION2_BASE           0x0039
+
+#define VAR_ADDRES_PAGE12_CONFIRMORRESET                0x0059
+
+#define VAR_ADDRES_PAGE13_LINESELECTION1_BASE           0x005A
+#define VAR_ADDRES_PAGE14_LINESELECTION2_BASE           0x007A
+
+#define VAR_ADDRES_PAGE15_CONFIRMORRESET                0x009A
+
+#define VAR_ADDRES_PAGE17_CONFIRMORRESET                0x009B
+
+#define VAR_ADDRES_PAGE18_CONFIRMORRESETORSTOP1         0x009C
+#define VAR_ADDRES_PAGE18_CONFIRMORRESET2               0x009D
+
+#define VAR_ADDRES_PAGE19_20_RESETZEROORCONFIRMORCANCEL 0x009E
+
+#define VAR_ADDRES_PAGE21_LINESELECTION1_BASE           0x009F
+#define VAR_ADDRES_PAGE22_LINESELECTION2_BASE           0x00BF
+
+#define VAR_ADDRES_PAGE23_CANCEL                        0x00DF
+
+#define VAR_ADDRES_PAGE24_CONFIRMORRESETORGENORCAL      0x00E0
+
+#define VAR_ADDRES_PAGE25_CONFIRMORRESETORGENORCAL      0x00E1
+
+#define VAR_ADDRES_PAGE26_CONFIRMORRESETORGEN           0x00E2
+
+#define VAR_ADDRES_PAGE27_DAY                           0x00E3
+
+#define VAR_ADDRES_PAGE29_DAY                           0x00E4
+
+#define VAR_ADDRES_PAGE31_DAY                           0x00E5
+
+#define VAR_ADDRES_PAGE33_DAY                           0x00E6
+
+#define VAR_ADDRES_PAGE36_NEXTORPREV                    0x00E7
+
+#define VAR_ADDRES_PAGE43_UPGRADE                       0x00E9
+
+#define VAR_ADDRES_PAGE_CHANGE_NO                       0x00EF
+
+
 
 #define debugnum(data,len,prefix)  \
 { \
@@ -30,6 +95,9 @@
 }
 
 static int dgus_fd = -1;
+static unsigned char  buf_byte[DATA_BUF_LEN];
+static unsigned short buf_word[DATA_BUF_LEN/2];
+static pthread_t dgus_thread;
 static int speed_arr[] = {  B115200, B57600, B38400, B19200, B9600, B4800,
 		    B2400, B1200};
 static int name_arr[] = {115200, 57600, 38400,  19200,  9600,  4800,  2400, 1200};
@@ -139,7 +207,8 @@ static int set_Parity(int fd,int databits,int stopbits,int parity)
 	return (TRUE);
 }
 
-int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data, unsigned char len){
+static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
+		unsigned char len){
 	unsigned char *buf;
 	int buf_len, cmd_len;
 	int nread;
@@ -187,13 +256,50 @@ int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data, unsign
 			free(buf);
 			return -6;
 		}
-		memcpy(buf + 6, data, len);
+		memcpy(data, buf + 6, len);
 	}
 	free(buf);
 	return 0;
 }
 
-int dgus_access_address(unsigned short addr, int is_write, unsigned short *data, unsigned short len){
+/*
+ * read from serial device to get the info
+ */
+static int _dgus_read_var_from_tty(unsigned short *addr){
+	int ret = 0;
+	if(dgus_fd > 0){
+		memset(buf_byte, 0, sizeof(buf_byte));
+		ret = read(dgus_fd, buf_byte, sizeof(buf_byte));
+	}
+	if(ret <= 0){
+		return ret;
+	}
+
+	ret = 0;
+	if(buf_byte[0] == HEADER_BYTE1 &&
+		buf_byte[1] == HEADER_BYTE1 &&
+		buf_byte[3] == 0x83){/* report the event */
+		if((buf_byte[2] - 4) / 2 == buf_byte[6]){
+			int i = 0, data_len_byte = buf_byte[6] * 2;
+			unsigned char *p = buf_byte;
+
+			*addr = buf_byte[4] << 8 | buf_byte[5];
+			memset(buf_word, 0, sizeof(buf_word));
+
+			p = buf_byte + 7;
+			while(i < data_len_byte){
+				buf_word[i/2] = *(p + i) << 8 | *(p + i + 1);
+				i += 2;
+			}
+			ret = buf_byte[6];
+			
+		}
+	}
+	return ret;
+}
+
+static int dgus_access_address(unsigned short addr, int is_write,
+		unsigned short *data, unsigned short len){
 	unsigned char *buf, *p;
 	int buf_len, cmd_len;
 	int nread;
@@ -262,7 +368,106 @@ int dgus_access_address(unsigned short addr, int is_write, unsigned short *data,
 
 }
 
-int dgus_init(){
+void dgus_waiting_thread_func(void *para){
+	int ret;
+	unsigned short addr;
+	struct dgus_callback *main_callback = (struct dgus_callback *)para;
+
+	while(1){
+		if((ret = _dgus_read_var_from_tty(&addr)) > 0){
+			switch(addr){
+			case VAR_ADDRES_PAGE05_SETZERO:
+				break;                      
+	
+			case VAR_ADDRES_PAGE_ONEKEYFLUSHCONTROL:
+				break; 
+			case VAR_ADDRES_PAGE06_FLUSHBYEQINTERVAL:
+				break;
+			case VAR_ADDRES_PAGE06_FLUSHBYDATE:
+				break;
+			case VAR_ADDRES_PAGE06_FLUSHAFTERDOSING:
+				break;
+				
+			case VAR_ADDRES_PAGE07_CONFIRMORRESET:
+				break;
+				
+			case VAR_ADDRES_PAGE08_NUMKEY:
+				break;
+			case VAR_ADDRES_PAGE08_CONFIRMORRESET:
+				break;
+				
+			case VAR_ADDRES_PAGE09_CONFIRMORRESET:
+				break;
+				
+			case VAR_ADDRES_PAGE10_LINESELECTION1_BASE:
+			case VAR_ADDRES_PAGE11_LINESELECTION2_BASE:
+				break;
+				
+			case VAR_ADDRES_PAGE12_CONFIRMORRESET:
+				break;
+				
+			case VAR_ADDRES_PAGE13_LINESELECTION1_BASE:
+			case VAR_ADDRES_PAGE14_LINESELECTION2_BASE:
+				break;
+				
+			case VAR_ADDRES_PAGE15_CONFIRMORRESET:
+				break;
+				
+			case VAR_ADDRES_PAGE17_CONFIRMORRESET:
+				break;
+				
+			case VAR_ADDRES_PAGE18_CONFIRMORRESETORSTOP1:
+				break;
+			case VAR_ADDRES_PAGE18_CONFIRMORRESET2:
+				break;
+				
+			case VAR_ADDRES_PAGE19_20_RESETZEROORCONFIRMORCANCEL:
+				break;
+				
+			case VAR_ADDRES_PAGE21_LINESELECTION1_BASE:
+			case VAR_ADDRES_PAGE22_LINESELECTION2_BASE:
+				break;
+				
+			case VAR_ADDRES_PAGE23_CANCEL:
+				break;
+				
+			case VAR_ADDRES_PAGE24_CONFIRMORRESETORGENORCAL:
+				break;
+			case VAR_ADDRES_PAGE25_CONFIRMORRESETORGENORCAL:
+				break;
+				
+			case VAR_ADDRES_PAGE26_CONFIRMORRESETORGEN:
+				break;
+				
+			case VAR_ADDRES_PAGE27_DAY:
+				break;
+				
+			case VAR_ADDRES_PAGE29_DAY:
+				break;
+				
+			case VAR_ADDRES_PAGE31_DAY:
+				break;
+			case VAR_ADDRES_PAGE33_DAY:
+				break;
+				
+			case VAR_ADDRES_PAGE36_NEXTORPREV:
+				break;
+			case VAR_ADDRES_PAGE43_UPGRADE:
+				break;
+			case VAR_ADDRES_PAGE_CHANGE_NO:
+				break;
+
+			default:
+				{
+				}
+			}
+		}
+	}
+
+}
+
+int dgus_init(struct dgus_callback *main_callback){
+
 	if(dgus_fd > 0){
 		return 0;
 	}
@@ -276,6 +481,7 @@ int dgus_init(){
 	/*
 	 *	to be done
 	 */
+	pthread_create(&dgus_thread,NULL,(void*)dgus_waiting_thread_func,(void *)main_callback);
 	return 0;
 }
 
@@ -285,14 +491,6 @@ void dgus_deinit(){
 	}
 }
 
-int dgus_wait_for_info(unsigned char *buf, int len){
-	int ret = 0;
-	if(dgus_fd > 0 &&
-		buf != NULL &&
-		len > 0){
-		ret = read(dgus_fd, buf, len);
-	}
-	return ret;
-}
+
 
 

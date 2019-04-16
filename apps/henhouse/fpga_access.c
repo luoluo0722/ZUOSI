@@ -64,3 +64,11 @@ void fpga_deinit(){
 	}
 }
 
+void fpga_flushall_ctl(unsigned short is_start){
+	unsigned short data = is_start ? 0xffff : 0;
+	int i = 0;
+	while(i < 4){
+		fpga_write_mem(i << 1, &data, 1);
+	}
+}
+

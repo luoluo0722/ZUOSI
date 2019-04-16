@@ -1,12 +1,12 @@
 
 struct dgus_keypress_callback{
 	unsigned short key_addr_offset;
-	void (*callback)(void *param);
+	void (*callback)(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len);
 };
 
 struct dgus_page_callback{
 	unsigned short page_num;
-	void (*callback)(void *param);
+	void (*callback)(unsigned short page_num, unsigned short *data_buf, int buf_len, int *len);
 };
 
 struct dgus_callback{

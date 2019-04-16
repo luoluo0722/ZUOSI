@@ -97,10 +97,457 @@
 static int dgus_fd = -1;
 static unsigned char  buf_byte[DATA_BUF_LEN];
 static unsigned short buf_word[DATA_BUF_LEN/2];
+static unsigned short callback_buf_word[DATA_BUF_LEN/2];
 static pthread_t dgus_thread;
 static int speed_arr[] = {  B115200, B57600, B38400, B19200, B9600, B4800,
 		    B2400, B1200};
 static int name_arr[] = {115200, 57600, 38400,  19200,  9600,  4800,  2400, 1200};
+static unsigned short current_page = -1;
+static struct dgus_callback internal_callback;
+static int dgus_access_address(unsigned short addr, int is_write,
+		unsigned short *data, unsigned short len);
+
+
+/*
+ * main callback table
+ */
+static struct dgus_callback *p_main_callback = NULL;
+
+static void dgus_page05_presss_resetzero(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page06_press_onekeyflushctl(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key - 1, NULL, 0, NULL);
+}
+static void dgus_page06_press_byeqinterval(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, NULL, 0, NULL);
+}
+static void dgus_page06_press_bydate(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, NULL, 0, NULL);
+}
+
+static void dgus_page06_press_afterdosing(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, NULL, 0, NULL);
+}
+
+static void dgus_page07_press_confirmorreset(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	if(key == 0x1){ /* confirm */
+		dgus_access_address(0x1008, 0, callback_buf_word, 5);
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 5, NULL);
+	}else if(key == 0x2){ /* reset */
+		int ret_len;
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 5, &ret_len);
+		dgus_access_address(0x1008, 1, callback_buf_word, 5);
+	}
+}
+
+static void dgus_page08_press_numkey(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, NULL, 0, NULL);
+}
+static void dgus_page08_press_confirmorreset(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	if(key == 0x1){ /* confirm */
+		dgus_access_address(0x100d, 0, callback_buf_word, 2);
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 2, NULL);
+	}else if(key == 0x2){ /* reset */
+		int ret_len;
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 2, &ret_len);
+		dgus_access_address(0x100d, 1, callback_buf_word, 2);
+	}
+}
+
+static void dgus_page09_press_confirmorreset(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	if(key == 0x1){ /* confirm */
+		dgus_access_address(0x100f, 0, callback_buf_word, 2);
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 2, NULL);
+	}else if(key == 0x2){ /* reset */
+		int ret_len;
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 2, &ret_len);
+		dgus_access_address(0x100f, 1, callback_buf_word, 2);
+	}
+}
+
+static void dgus_page10_11_press_lineselect(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page12_press_confirmorreset(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page13_14_press_lineselect(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page15_press_confirmorcancel(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page17_press_confirmorreset(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page18_press_confirmorresetorstop(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+static void dgus_page18_press_confirmorreset(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page19_20_press_setzeroorconfirmorcancel(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page21_22_press_lineselect(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+
+static void dgus_page23_press_cancel(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page24_press_confirmorresetorgenorcal(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page25_press_confirmorresetorgenorcal(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page26_press_confirmorresetorgen(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page27_29_31_33_press_daypos(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page36_press_nextorprev(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page43_press_upgrade(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page_change(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	current_page = key;
+	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, NULL, 0, NULL);
+	internal_callback.page_callback[current_page].callback(current_page, NULL, 0, NULL);
+}
+
+static struct dgus_keypress_callback internal_keypress_callback_array[] = {
+	{0, dgus_page05_presss_resetzero},
+
+	{1, dgus_page06_press_onekeyflushctl},
+	{2, dgus_page06_press_byeqinterval},
+	{3, dgus_page06_press_bydate},
+	{4, dgus_page06_press_afterdosing},
+
+	{5, dgus_page07_press_confirmorreset},
+
+	{6, dgus_page08_press_numkey},
+	{7, dgus_page08_press_confirmorreset},
+
+	{8, dgus_page09_press_confirmorreset},
+
+	{9, dgus_page10_11_press_lineselect},
+	{10, dgus_page10_11_press_lineselect},
+	{11, dgus_page10_11_press_lineselect},
+	{12, dgus_page10_11_press_lineselect},
+	{13, dgus_page10_11_press_lineselect},
+	{14, dgus_page10_11_press_lineselect},
+	{15, dgus_page10_11_press_lineselect},
+	{16, dgus_page10_11_press_lineselect},
+	{17, dgus_page10_11_press_lineselect},
+	{18, dgus_page10_11_press_lineselect},
+	{19, dgus_page10_11_press_lineselect},
+	{20, dgus_page10_11_press_lineselect},
+	{21, dgus_page10_11_press_lineselect},
+	{22, dgus_page10_11_press_lineselect},
+	{23, dgus_page10_11_press_lineselect},
+	{24, dgus_page10_11_press_lineselect},
+	{25, dgus_page10_11_press_lineselect},
+	{26, dgus_page10_11_press_lineselect},
+	{27, dgus_page10_11_press_lineselect},
+	{28, dgus_page10_11_press_lineselect},
+	{29, dgus_page10_11_press_lineselect},
+	{30, dgus_page10_11_press_lineselect},
+	{31, dgus_page10_11_press_lineselect},
+	{32, dgus_page10_11_press_lineselect},
+	{33, dgus_page10_11_press_lineselect},
+	{34, dgus_page10_11_press_lineselect},
+	{35, dgus_page10_11_press_lineselect},
+	{36, dgus_page10_11_press_lineselect},
+	{37, dgus_page10_11_press_lineselect},
+	{38, dgus_page10_11_press_lineselect},
+	{39, dgus_page10_11_press_lineselect},
+	{40, dgus_page10_11_press_lineselect},
+
+	{41, dgus_page10_11_press_lineselect},
+	{42, dgus_page10_11_press_lineselect},
+	{43, dgus_page10_11_press_lineselect},
+	{44, dgus_page10_11_press_lineselect},
+	{45, dgus_page10_11_press_lineselect},
+	{46, dgus_page10_11_press_lineselect},
+	{47, dgus_page10_11_press_lineselect},
+	{48, dgus_page10_11_press_lineselect},
+	{49, dgus_page10_11_press_lineselect},
+	{50, dgus_page10_11_press_lineselect},
+	{51, dgus_page10_11_press_lineselect},
+	{52, dgus_page10_11_press_lineselect},
+	{53, dgus_page10_11_press_lineselect},
+	{54, dgus_page10_11_press_lineselect},
+	{55, dgus_page10_11_press_lineselect},
+	{56, dgus_page10_11_press_lineselect},
+	{57, dgus_page10_11_press_lineselect},
+	{58, dgus_page10_11_press_lineselect},
+	{59, dgus_page10_11_press_lineselect},
+	{60, dgus_page10_11_press_lineselect},
+	{61, dgus_page10_11_press_lineselect},
+	{62, dgus_page10_11_press_lineselect},
+	{63, dgus_page10_11_press_lineselect},
+	{64, dgus_page10_11_press_lineselect},
+	{65, dgus_page10_11_press_lineselect},
+	{66, dgus_page10_11_press_lineselect},
+	{67, dgus_page10_11_press_lineselect},
+	{68, dgus_page10_11_press_lineselect},
+	{69, dgus_page10_11_press_lineselect},
+	{70, dgus_page10_11_press_lineselect},
+	{71, dgus_page10_11_press_lineselect},
+	{72, dgus_page10_11_press_lineselect},
+
+	{73, dgus_page12_press_confirmorreset},
+
+	{74, dgus_page13_14_press_lineselect},
+	{75, dgus_page13_14_press_lineselect},
+	{76, dgus_page13_14_press_lineselect},
+	{77, dgus_page13_14_press_lineselect},
+	{78, dgus_page13_14_press_lineselect},
+	{79, dgus_page13_14_press_lineselect},
+	{80, dgus_page13_14_press_lineselect},
+	{81, dgus_page13_14_press_lineselect},
+	{82, dgus_page13_14_press_lineselect},
+	{83, dgus_page13_14_press_lineselect},
+	{84, dgus_page13_14_press_lineselect},
+	{85, dgus_page13_14_press_lineselect},
+	{86, dgus_page13_14_press_lineselect},
+	{87, dgus_page13_14_press_lineselect},
+	{88, dgus_page13_14_press_lineselect},
+	{89, dgus_page13_14_press_lineselect},
+	{90, dgus_page13_14_press_lineselect},
+	{91, dgus_page13_14_press_lineselect},
+	{92, dgus_page13_14_press_lineselect},
+	{93, dgus_page13_14_press_lineselect},
+	{94, dgus_page13_14_press_lineselect},
+	{95, dgus_page13_14_press_lineselect},
+	{96, dgus_page13_14_press_lineselect},
+	{97, dgus_page13_14_press_lineselect},
+	{98, dgus_page13_14_press_lineselect},
+	{99, dgus_page13_14_press_lineselect},
+	{100, dgus_page13_14_press_lineselect},
+	{101, dgus_page13_14_press_lineselect},
+	{102, dgus_page13_14_press_lineselect},
+	{103, dgus_page13_14_press_lineselect},
+	{104, dgus_page13_14_press_lineselect},
+	{105, dgus_page13_14_press_lineselect},
+
+	{106, dgus_page13_14_press_lineselect},
+	{107, dgus_page13_14_press_lineselect},
+	{108, dgus_page13_14_press_lineselect},
+	{109, dgus_page13_14_press_lineselect},
+	{110, dgus_page13_14_press_lineselect},
+	{111, dgus_page13_14_press_lineselect},
+	{112, dgus_page13_14_press_lineselect},
+	{113, dgus_page13_14_press_lineselect},
+	{114, dgus_page13_14_press_lineselect},
+	{115, dgus_page13_14_press_lineselect},
+	{116, dgus_page13_14_press_lineselect},
+	{117, dgus_page13_14_press_lineselect},
+	{118, dgus_page13_14_press_lineselect},
+	{119, dgus_page13_14_press_lineselect},
+	{120, dgus_page13_14_press_lineselect},
+	{121, dgus_page13_14_press_lineselect},
+	{122, dgus_page13_14_press_lineselect},
+	{123, dgus_page13_14_press_lineselect},
+	{124, dgus_page13_14_press_lineselect},
+	{125, dgus_page13_14_press_lineselect},
+	{126, dgus_page13_14_press_lineselect},
+	{127, dgus_page13_14_press_lineselect},
+	{128, dgus_page13_14_press_lineselect},
+	{129, dgus_page13_14_press_lineselect},
+	{130, dgus_page13_14_press_lineselect},
+	{131, dgus_page13_14_press_lineselect},
+	{132, dgus_page13_14_press_lineselect},
+	{133, dgus_page13_14_press_lineselect},
+	{134, dgus_page13_14_press_lineselect},
+	{135, dgus_page13_14_press_lineselect},
+	{136, dgus_page13_14_press_lineselect},
+	{137, dgus_page13_14_press_lineselect},
+
+	{138, dgus_page15_press_confirmorcancel},
+
+	{139, dgus_page17_press_confirmorreset},
+
+	{140, dgus_page18_press_confirmorresetorstop},
+	{141, dgus_page18_press_confirmorreset},
+
+	{142, dgus_page19_20_press_setzeroorconfirmorcancel},
+
+	{143, dgus_page21_22_press_lineselect},
+	{144, dgus_page21_22_press_lineselect},
+	{145, dgus_page21_22_press_lineselect},
+	{146, dgus_page21_22_press_lineselect},
+	{147, dgus_page21_22_press_lineselect},
+	{148, dgus_page21_22_press_lineselect},
+	{149, dgus_page21_22_press_lineselect},
+	{150, dgus_page21_22_press_lineselect},
+	{151, dgus_page21_22_press_lineselect},
+	{152, dgus_page21_22_press_lineselect},
+	{153, dgus_page21_22_press_lineselect},
+	{154, dgus_page21_22_press_lineselect},
+	{155, dgus_page21_22_press_lineselect},
+	{156, dgus_page21_22_press_lineselect},
+	{157, dgus_page21_22_press_lineselect},
+	{158, dgus_page21_22_press_lineselect},
+	{159, dgus_page21_22_press_lineselect},
+	{160, dgus_page21_22_press_lineselect},
+	{161, dgus_page21_22_press_lineselect},
+	{162, dgus_page21_22_press_lineselect},
+	{163, dgus_page21_22_press_lineselect},
+	{164, dgus_page21_22_press_lineselect},
+	{165, dgus_page21_22_press_lineselect},
+	{166, dgus_page21_22_press_lineselect},
+	{167, dgus_page21_22_press_lineselect},
+	{168, dgus_page21_22_press_lineselect},
+	{169, dgus_page21_22_press_lineselect},
+	{170, dgus_page21_22_press_lineselect},
+	{171, dgus_page21_22_press_lineselect},
+	{172, dgus_page21_22_press_lineselect},
+	{173, dgus_page21_22_press_lineselect},
+	{174, dgus_page21_22_press_lineselect},
+
+	{175, dgus_page21_22_press_lineselect},
+	{176, dgus_page21_22_press_lineselect},
+	{177, dgus_page21_22_press_lineselect},
+	{178, dgus_page21_22_press_lineselect},
+	{179, dgus_page21_22_press_lineselect},
+	{180, dgus_page21_22_press_lineselect},
+	{181, dgus_page21_22_press_lineselect},
+	{182, dgus_page21_22_press_lineselect},
+	{183, dgus_page21_22_press_lineselect},
+	{184, dgus_page21_22_press_lineselect},
+	{185, dgus_page21_22_press_lineselect},
+	{186, dgus_page21_22_press_lineselect},
+	{187, dgus_page21_22_press_lineselect},
+	{188, dgus_page21_22_press_lineselect},
+	{189, dgus_page21_22_press_lineselect},
+	{190, dgus_page21_22_press_lineselect},
+	{191, dgus_page21_22_press_lineselect},
+	{192, dgus_page21_22_press_lineselect},
+	{193, dgus_page21_22_press_lineselect},
+	{194, dgus_page21_22_press_lineselect},
+	{195, dgus_page21_22_press_lineselect},
+	{196, dgus_page21_22_press_lineselect},
+	{197, dgus_page21_22_press_lineselect},
+	{198, dgus_page21_22_press_lineselect},
+	{199, dgus_page21_22_press_lineselect},
+	{200, dgus_page21_22_press_lineselect},
+	{201, dgus_page21_22_press_lineselect},
+	{202, dgus_page21_22_press_lineselect},
+	{203, dgus_page21_22_press_lineselect},
+	{204, dgus_page21_22_press_lineselect},
+	{205, dgus_page21_22_press_lineselect},
+	{206, dgus_page21_22_press_lineselect},
+
+	{207, dgus_page23_press_cancel},
+
+	{208, dgus_page24_press_confirmorresetorgenorcal},
+
+	{209, dgus_page25_press_confirmorresetorgenorcal},
+
+	{210, dgus_page26_press_confirmorresetorgen},
+
+	{211, dgus_page27_29_31_33_press_daypos},
+	{212, dgus_page27_29_31_33_press_daypos},
+	{213, dgus_page27_29_31_33_press_daypos},
+	{214, dgus_page27_29_31_33_press_daypos},
+
+	{215, dgus_page36_press_nextorprev},
+
+	{216, NULL},
+
+	{217, dgus_page43_press_upgrade},
+
+	{218, NULL},
+	{219, NULL},
+	{220, NULL},
+	{221, NULL},
+	{222, NULL},
+	{223, dgus_page_change},
+
+	{0xffff, NULL},
+};
+
+void page5_display(unsigned short page_num, unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	p_main_callback->page_callback[page_num].callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+	dgus_access_address(0x1000, 1, callback_buf_word, ret_len - 1);
+	dgus_access_address(0x1050, 1, &callback_buf_word[ret_len - 1], 1);
+	
+}
+
+void page8_display(unsigned short page_num, unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	p_main_callback->page_callback[page_num].callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+	dgus_access_address(0x100D, 1, callback_buf_word, ret_len);
+}
+static struct dgus_page_callback internal_page_callback_array[] = {
+	{0, NULL},
+	{1, NULL},
+	{2, NULL},
+	{3, NULL},
+	{4, NULL},
+	{5, page5_display},
+	{6, NULL},
+	{7, NULL},
+	{8, page8_display},
+	{9, NULL},
+	{10, NULL},
+	{11, NULL},
+	{12, NULL},
+	{13, NULL},
+	{14, NULL},
+	{15, NULL},
+	{16, NULL},
+	{17, NULL},
+	{18, NULL},
+	{19, NULL},
+	{20, NULL},
+	{21, NULL},
+	{22, NULL},
+	{23, NULL},
+	{24, NULL},
+	{25, NULL},
+	{26, NULL},
+	{27, NULL},
+	{28, NULL},
+	{29, NULL},
+	{30, NULL},
+	{31, NULL},
+	{32, NULL},
+	{33, NULL},
+	{34, NULL},
+
+	{0xffff, NULL},
+};
+
+/*
+ * internal callback table
+ */
+static struct dgus_callback internal_callback = {
+	.keypress_callback = internal_keypress_callback_array,
+	.page_callback = internal_page_callback_array,
+};
+
 
 static void set_speed(int fd, int speed)
 {
@@ -262,10 +709,13 @@ static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
 	return 0;
 }
 
+static int _dgus_read_version(){
+}
+
 /*
  * read from serial device to get the info
  */
-static int _dgus_read_var_from_tty(unsigned short *addr){
+static int _dgus_wait_to_read_report(unsigned short *var_addr){
 	int ret = 0;
 	if(dgus_fd > 0){
 		memset(buf_byte, 0, sizeof(buf_byte));
@@ -283,7 +733,7 @@ static int _dgus_read_var_from_tty(unsigned short *addr){
 			int i = 0, data_len_byte = buf_byte[6] * 2;
 			unsigned char *p = buf_byte;
 
-			*addr = buf_byte[4] << 8 | buf_byte[5];
+			*var_addr = buf_byte[4] << 8 | buf_byte[5];
 			memset(buf_word, 0, sizeof(buf_word));
 
 			p = buf_byte + 7;
@@ -370,12 +820,16 @@ static int dgus_access_address(unsigned short addr, int is_write,
 
 void dgus_waiting_thread_func(void *para){
 	int ret;
-	unsigned short addr;
-	struct dgus_callback *main_callback = (struct dgus_callback *)para;
+	unsigned short var_addr;
+	//struct dgus_callback *main_callback = (struct dgus_callback *)para;
 
 	while(1){
-		if((ret = _dgus_read_var_from_tty(&addr)) > 0){
-			switch(addr){
+		if((ret = _dgus_wait_to_read_report(&var_addr)) > 0){
+			if(ret == 1){
+				int addr_offset = var_addr - VAR_ADDRES_REPORT_BASE;
+				internal_callback.keypress_callback[addr_offset].callback(addr_offset, buf_word[0], NULL, 0, NULL);
+			}
+			switch(var_addr){
 			case VAR_ADDRES_PAGE05_SETZERO:
 				break;                      
 	
@@ -481,7 +935,8 @@ int dgus_init(struct dgus_callback *main_callback){
 	/*
 	 *	to be done
 	 */
-	pthread_create(&dgus_thread,NULL,(void*)dgus_waiting_thread_func,(void *)main_callback);
+	p_main_callback = main_callback;
+	pthread_create(&dgus_thread,NULL,(void*)dgus_waiting_thread_func,NULL);
 	return 0;
 }
 

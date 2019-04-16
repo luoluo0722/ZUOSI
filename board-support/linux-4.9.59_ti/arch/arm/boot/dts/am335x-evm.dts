@@ -661,23 +661,23 @@
 		gpmc,device-width = <1>;
 		gpmc,sync-clk-ps = <0>;
 		gpmc,cs-on-ns = <0>;
-		gpmc,cs-rd-off-ns = <50>;
-		gpmc,cs-wr-off-ns = <50>;
+		gpmc,cs-rd-off-ns = <240>;
+		gpmc,cs-wr-off-ns = <240>;
 		gpmc,adv-on-ns = <10>;
-		gpmc,adv-rd-off-ns = <40>;
-		gpmc,adv-wr-off-ns = <50>;
-		gpmc,we-on-ns = <10>;
-		gpmc,we-off-ns = <40>;
-		gpmc,oe-on-ns = <10>;
-		gpmc,oe-off-ns = <60>;
-		gpmc,access-ns = <70>;
-		gpmc,rd-cycle-ns = <90>;
-		gpmc,wr-cycle-ns = <90>;
+		gpmc,adv-rd-off-ns = <240>;
+		gpmc,adv-wr-off-ns = <240>;
+		gpmc,we-on-ns = <50>;
+		gpmc,we-off-ns = <200>;
+		gpmc,oe-on-ns = <70>;
+		gpmc,oe-off-ns = <240>;
+		gpmc,access-ns = <200>;
+		gpmc,rd-cycle-ns = <240>;
+		gpmc,wr-cycle-ns = <240>;
 		gpmc,bus-turnaround-ns = <0>;
-		gpmc,cycle2cycle-delay-ns = <0>;
+		gpmc,cycle2cycle-delay-ns = <150>;
 		gpmc,clk-activation-ns = <0>;
 		gpmc,wait-monitoring-ns = <0>;
-		gpmc,wr-access-ns = <40>;
+		gpmc,wr-access-ns = <220>;
 		gpmc,wr-data-mux-bus-ns = <0>;
 		/* MTD partition table */
 		/* All SPL-* partitions are sized to minimal length

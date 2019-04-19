@@ -19,6 +19,6 @@ struct dgus_callback{
 
 //int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data, unsigned char len);
 //int dgus_access_address(unsigned short addr, int is_write, unsigned short *data, unsigned short len);
-int dgus_init(struct dgus_callback *main_callback);
+int dgus_init(char *device_path, struct dgus_callback *main_callback);
 void dgus_deinit();
 void dgus_get_now_date(unsigned char *data, int len);

@@ -606,7 +606,7 @@ int main(int argc,char **argv){
 		//return ret;
 	}
 
-	if((ret = dgus_init(&main_callback)) != 0){
+	if((ret = dgus_init(argv[1], &main_callback)) != 0){
 		printf("dgus_init error\n");
 		return ret;
 	}

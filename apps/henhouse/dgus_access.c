@@ -1085,13 +1085,13 @@ void dgus_waiting_thread_func(void *para){
 
 }
 
-int dgus_init(struct dgus_callback *main_callback){
+int dgus_init(char *device_path, struct dgus_callback *main_callback){
 
 	unsigned char ver;
 	if(dgus_fd > 0){
 		return 0;
 	}
-	dgus_fd = open(TTY_DEVICE, O_RDWR);
+	dgus_fd = open(device_path, O_RDWR);
 	if (dgus_fd < 0){
 		printf("open device %s faild\n", TTY_DEVICE);
 		return -1;

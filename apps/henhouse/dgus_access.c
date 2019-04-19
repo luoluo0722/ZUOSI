@@ -14,7 +14,7 @@
 
 #include "dgus_access.h"
 
-#define TTY_DEVICE "/dev/ttyS01"
+#define TTY_DEVICE "/dev/ttyS1"
 
 #define FALSE 1
 #define TRUE 0
@@ -22,6 +22,8 @@
 #define HEADER_BYTE2 0xa5
 
 #define DATA_BUF_LEN 256
+
+#define REG_ADDRES_VERSION 0x0
 
 #define VAR_ADDRES_REPORT_BASE       VAR_ADDRES_PAGE05_SETZERO
 #define VAR_ADDRES_PAGE05_SETZERO                       0x0010
@@ -104,6 +106,9 @@ static int speed_arr[] = {  B115200, B57600, B38400, B19200, B9600, B4800,
 static int name_arr[] = {115200, 57600, 38400,  19200,  9600,  4800,  2400, 1200};
 static unsigned short current_page = -1;
 static struct dgus_callback internal_callback;
+
+unsigned short date_eqinterval[5] = {0};
+
 static int dgus_access_address(unsigned short addr, int is_write,
 		unsigned short *data, unsigned short len);
 
@@ -139,11 +144,17 @@ static void dgus_page07_press_confirmorreset(unsigned short key_addr_offset,
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	memset(callback_buf_word, 0, sizeof(callback_buf_word));
 	if(key == 0x1){ /* confirm */
-		dgus_access_address(0x1008, 0, callback_buf_word, 5);
+		dgus_access_address(0x1008, 0, callback_buf_word, 1);
+		//memcpy(callback_buf_word, date_eqinterval, sizeof(date_eqinterval));
+		
+		printf("%d, %d, %d, %d, %d\n", callback_buf_word[0], callback_buf_word[1],
+				callback_buf_word[2],callback_buf_word[3], callback_buf_word[4]);
 		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 5, NULL);
 	}else if(key == 0x2){ /* reset */
 		int ret_len;
 		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 5, &ret_len);
+		printf("%d, %d, %d, %d, %d\n", callback_buf_word[0], callback_buf_word[1],
+				callback_buf_word[2],callback_buf_word[3], callback_buf_word[4]);
 		dgus_access_address(0x1008, 1, callback_buf_word, 5);
 	}
 }
@@ -178,58 +189,157 @@ static void dgus_page09_press_confirmorreset(unsigned short key_addr_offset,
 	}
 }
 
-static void dgus_page10_11_press_lineselect(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page10_11_press_lineselect(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	DGUS_REPORT_CALLBACK report_callback;
+	report_callback = p_main_callback->keypress_callback[key_addr_offset].callback;
+
+	if(report_callback != NULL){
+		report_callback(key_addr_offset, key, NULL, 0, NULL);
+	}
 }
 
-static void dgus_page12_press_confirmorreset(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page12_press_confirmorreset(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	DGUS_REPORT_CALLBACK report_callback;
+
+	report_callback = p_main_callback->keypress_callback[key_addr_offset].callback;
+	if(report_callback == NULL){
+		return;
+	}
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	if(key == 0x1){ /* confirm */
+		dgus_access_address(0x1011, 0, callback_buf_word, 2);
+		report_callback(key_addr_offset, key, callback_buf_word, 2, NULL);
+	}else if(key == 0x2){ /* reset */
+		int ret_len;
+		report_callback(key_addr_offset, key, callback_buf_word, 2, &ret_len);
+		dgus_access_address(0x1011, 1, callback_buf_word, 2);
+	}
 }
 
-static void dgus_page13_14_press_lineselect(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page13_14_press_lineselect(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	DGUS_REPORT_CALLBACK report_callback;
+	report_callback = p_main_callback->keypress_callback[key_addr_offset].callback;
+
+	if(report_callback != NULL){
+		report_callback(key_addr_offset, key, NULL, 0, NULL);
+	}
 }
 
-static void dgus_page15_press_confirmorcancel(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page15_press_confirmorcancel(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	DGUS_REPORT_CALLBACK report_callback;
+
+	report_callback = p_main_callback->keypress_callback[key_addr_offset].callback;
+	if(report_callback == NULL){
+		return;
+	}
+
+	report_callback(key_addr_offset, key, NULL, 0, NULL);
 }
 
-static void dgus_page17_press_confirmorreset(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page17_press_confirmorreset(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	DGUS_REPORT_CALLBACK report_callback;
+
+	report_callback = p_main_callback->keypress_callback[key_addr_offset].callback;
+	if(report_callback == NULL){
+		return;
+	}
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	if(key == 0x1){ /* confirm */
+		dgus_access_address(0x1015, 0, callback_buf_word, 2);
+		report_callback(key_addr_offset, key, callback_buf_word, 2, NULL);
+	}else if(key == 0x2){ /* reset */
+		int ret_len;
+		report_callback(key_addr_offset, key, callback_buf_word, 2, &ret_len);
+		dgus_access_address(0x1016, 1, callback_buf_word, 2);
+	}
 }
 
-static void dgus_page18_press_confirmorresetorstop(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-}
-static void dgus_page18_press_confirmorreset(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-}
+static void dgus_page18_press_confirmorresetorstop(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	DGUS_REPORT_CALLBACK report_callback;
 
-static void dgus_page19_20_press_setzeroorconfirmorcancel(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	report_callback = p_main_callback->keypress_callback[key_addr_offset].callback;
+	if(report_callback == NULL){
+		return;
+	}
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	if(key == 0x1){ /* confirm */
+		dgus_access_address(0x1017, 0, callback_buf_word, 6);
+		report_callback(key_addr_offset, key, callback_buf_word, 6, NULL);
+	}else if(key == 0x2){ /* reset */
+		int ret_len;
+		report_callback(key_addr_offset, key, callback_buf_word, 6, &ret_len);
+		dgus_access_address(0x1017, 1, callback_buf_word, 6);
+	}else if(key == 0x3){ /* stop */
+		report_callback(key_addr_offset, key, NULL, 0, NULL);
+	}
 }
-
-static void dgus_page21_22_press_lineselect(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-}
-
-
-static void dgus_page23_press_cancel(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-}
-
-static void dgus_page24_press_confirmorresetorgenorcal(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-}
-
-static void dgus_page25_press_confirmorresetorgenorcal(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-}
-
-static void dgus_page26_press_confirmorresetorgen(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-}
-
-static void dgus_page27_29_31_33_press_daypos(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page18_press_confirmorreset(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 }
 
-static void dgus_page36_press_nextorprev(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page19_20_press_setzeroorconfirmorcancel(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 }
 
-static void dgus_page43_press_upgrade(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+static void dgus_page21_22_press_lineselect(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 }
 
-static void dgus_page_change(unsigned short key_addr_offset, unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+
+static void dgus_page23_press_cancel(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page24_press_confirmorresetorgenorcal(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page25_press_confirmorresetorgenorcal(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page26_press_confirmorresetorgen(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page27_29_31_33_press_daypos(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page36_press_nextorprev(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page43_press_upgrade(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+}
+
+static void dgus_page_change(unsigned short key_addr_offset, unsigned short key, 
+	unsigned short *data_buf, int buf_len, int *len){
 	current_page = key;
-	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, NULL, 0, NULL);
-	internal_callback.page_callback[current_page].callback(current_page, NULL, 0, NULL);
+	DGUS_REPORT_CALLBACK report_callback;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	/* main call back */
+	report_callback = p_main_callback->keypress_callback[key_addr_offset].callback;
+	if(report_callback != NULL){
+		report_callback(key_addr_offset, key, NULL, 0, NULL);
+	}
+
+	/* page call back */
+	pagechange_callback = internal_callback.page_callback[current_page].callback;
+	if(pagechange_callback != NULL){
+		pagechange_callback(current_page, NULL, 0, NULL);
+	}
 }
 
 static struct dgus_keypress_callback internal_keypress_callback_array[] = {
@@ -485,20 +595,122 @@ static struct dgus_keypress_callback internal_keypress_callback_array[] = {
 	{0xffff, NULL},
 };
 
-void page5_display(unsigned short page_num, unsigned short *data_buf, int buf_len, int *len){
-	int ret_len;
-	memset(callback_buf_word, 0, sizeof(callback_buf_word));
-	p_main_callback->page_callback[page_num].callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
-	dgus_access_address(0x1000, 1, callback_buf_word, ret_len - 1);
-	dgus_access_address(0x1050, 1, &callback_buf_word[ret_len - 1], 1);
-	
+#if 0
+static void dgus_page7_report_var(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	date_eqinterval[key_addr_offset - 8] = key;
 }
 
-void page8_display(unsigned short page_num, unsigned short *data_buf, int buf_len, int *len){
+static struct dgus_keypress_callback internal_var_report_callback_array[] = {
+	{0, NULL},
+	{0, NULL},
+	{0, NULL},
+	{0, NULL},
+	{0, NULL},
+	{0, NULL},
+	{0, NULL},
+	{0, NULL},
+	{8, dgus_page7_report_var},
+	{9, dgus_page7_report_var},
+	{10, dgus_page7_report_var},
+	{11, dgus_page7_report_var},
+	{12, dgus_page7_report_var},
+	{0xffff, NULL},
+};
+#endif
+
+static void dgus_page05_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
 	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
 	memset(callback_buf_word, 0, sizeof(callback_buf_word));
-	p_main_callback->page_callback[page_num].callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
-	dgus_access_address(0x100D, 1, callback_buf_word, ret_len);
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x1000, 1, callback_buf_word, ret_len - 1);
+		dgus_access_address(0x1050, 1, &callback_buf_word[ret_len - 1], 1);
+	}
+
+}
+
+static void dgus_page08_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x100D, 1, callback_buf_word, ret_len);
+	}
+}
+
+static void dgus_page09_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x100F, 1, callback_buf_word, ret_len);
+	}
+}
+
+static void dgus_page12_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x1011, 1, callback_buf_word, ret_len);
+	}
+}
+
+static void dgus_page16_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x1013, 1, callback_buf_word, ret_len);
+	}
+}
+
+static void dgus_page17_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x1015, 1, callback_buf_word, ret_len);
+	}
+}
+
+static void dgus_page18_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x1017, 1, callback_buf_word, ret_len);
+	}
 }
 static struct dgus_page_callback internal_page_callback_array[] = {
 	{0, NULL},
@@ -506,20 +718,20 @@ static struct dgus_page_callback internal_page_callback_array[] = {
 	{2, NULL},
 	{3, NULL},
 	{4, NULL},
-	{5, page5_display},
+	{5, dgus_page05_display},
 	{6, NULL},
 	{7, NULL},
-	{8, page8_display},
+	{8, dgus_page09_display},
 	{9, NULL},
 	{10, NULL},
 	{11, NULL},
-	{12, NULL},
+	{12, dgus_page12_display},
 	{13, NULL},
 	{14, NULL},
 	{15, NULL},
-	{16, NULL},
-	{17, NULL},
-	{18, NULL},
+	{16, dgus_page16_display},
+	{17, dgus_page17_display},
+	{18, dgus_page18_display},
 	{19, NULL},
 	{20, NULL},
 	{21, NULL},
@@ -547,7 +759,6 @@ static struct dgus_callback internal_callback = {
 	.keypress_callback = internal_keypress_callback_array,
 	.page_callback = internal_page_callback_array,
 };
-
 
 static void set_speed(int fd, int speed)
 {
@@ -656,7 +867,7 @@ static int set_Parity(int fd,int databits,int stopbits,int parity)
 
 static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
 		unsigned char len){
-	unsigned char *buf;
+	//unsigned char *buf;
 	int buf_len, cmd_len;
 	int nread;
 	int cmd_code_len;
@@ -675,41 +886,44 @@ static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
 	}
 	cmd_code_len = is_write == 0 ? 6 : 5;
 	buf_len = cmd_code_len + len;
-	buf = malloc(buf_len);
-	if(buf == NULL){
-		return -5;
-	}
-	memset(buf, 0, buf_len);
+	//buf = malloc(buf_len);
+	//if(buf == NULL){
+	//	return -5;
+	//}
+	memset(buf_byte, 0, sizeof(buf_byte));
 
-	buf[0] = HEADER_BYTE1;
-	buf[1] = HEADER_BYTE2;
+	buf_byte[0] = HEADER_BYTE1;
+	buf_byte[1] = HEADER_BYTE2;
 	if(is_write == 0){
-		buf[2] = 3;
-		buf[3] = 0x81;
-		buf[5] = len;
+		buf_byte[2] = 3;
+		buf_byte[3] = 0x81;
+		buf_byte[5] = len;
 		cmd_len = buf_len - len;
 	}else{
-		buf[2] = 2 + len;
-		buf[3] = 0x80;
-		memcpy(buf + 5, data, len);
+		buf_byte[2] = 2 + len;
+		buf_byte[3] = 0x80;
+		memcpy(buf_byte + 5, data, len);
 		cmd_len = buf_len;
 	}
-	buf[4] = reg;
+	buf_byte[4] = reg;
 
-	write(dgus_fd, buf, cmd_len);
+	write(dgus_fd, buf_byte, cmd_len);
 	if(is_write == 0){
-		nread = read(dgus_fd, buf, cmd_len);
-		if(nread != cmd_len){
-			free(buf);
+		nread = read(dgus_fd, buf_byte, cmd_len + 1);
+		if(nread != cmd_len + 1){
+			//free(buf);
 			return -6;
 		}
-		memcpy(data, buf + 6, len);
+		memcpy(data, buf_byte + 6, len);
 	}
-	free(buf);
+	//free(buf);
 	return 0;
 }
 
-static int _dgus_read_version(){
+static unsigned char _dgus_read_version(){
+	unsigned char ver = 0xff;
+	dgus_access_reg(REG_ADDRES_VERSION, 0, &ver, 1);
+	return ver;
 }
 
 /*
@@ -717,6 +931,7 @@ static int _dgus_read_version(){
  */
 static int _dgus_wait_to_read_report(unsigned short *var_addr){
 	int ret = 0;
+	int i = 0;
 	if(dgus_fd > 0){
 		memset(buf_byte, 0, sizeof(buf_byte));
 		ret = read(dgus_fd, buf_byte, sizeof(buf_byte));
@@ -725,11 +940,15 @@ static int _dgus_wait_to_read_report(unsigned short *var_addr){
 		return ret;
 	}
 
+	while(i < ret){
+		printf("read %d = 0x%x\n", i, buf_byte[i]);
+		i++;
+	}
 	ret = 0;
-	if(buf_byte[0] == HEADER_BYTE1 &&
-		buf_byte[1] == HEADER_BYTE1 &&
-		buf_byte[3] == 0x83){/* report the event */
-		if((buf_byte[2] - 4) / 2 == buf_byte[6]){
+	if((buf_byte[0] == HEADER_BYTE1) &&
+		(buf_byte[1] == HEADER_BYTE2) &&
+		(buf_byte[3] == 0x83)){/* report the event */
+		if(((buf_byte[2] - 4) / 2) == buf_byte[6]){
 			int i = 0, data_len_byte = buf_byte[6] * 2;
 			unsigned char *p = buf_byte;
 
@@ -742,7 +961,6 @@ static int _dgus_wait_to_read_report(unsigned short *var_addr){
 				i += 2;
 			}
 			ret = buf_byte[6];
-			
 		}
 	}
 	return ret;
@@ -778,7 +996,7 @@ static int dgus_access_address(unsigned short addr, int is_write,
 	memset(buf, 0, buf_len);
 
 	buf[0] = HEADER_BYTE1;
-	buf[1] = HEADER_BYTE1;
+	buf[1] = HEADER_BYTE2;
 	if(is_write == 0){
 		buf[2] = 4;
 		buf[3] = 0x83;
@@ -799,9 +1017,21 @@ static int dgus_access_address(unsigned short addr, int is_write,
 	buf[4] = addr >> 8;
 	buf[5] = addr & 0xff;
 
+	i = 0;
+	while(i < cmd_len){
+		printf("write buf %d = 0x%x\n", i, buf[i]);
+		i++;
+	}
 	write(dgus_fd, buf, cmd_len);
+	memset(buf, 0, buf_len);
 	if(is_write == 0){
 		nread = read(dgus_fd, buf, buf_len);
+		printf("nread = %d, buf_len = %d\n",nread,  buf_len);
+		i = 0;
+		while(i < buf_len){
+			printf("read buf %d = %x\n", i, buf[i]);
+			i++;
+		}
 		if(nread != buf_len){
 			free(buf);
 			return -6;
@@ -825,95 +1055,30 @@ void dgus_waiting_thread_func(void *para){
 
 	while(1){
 		if((ret = _dgus_wait_to_read_report(&var_addr)) > 0){
+			printf("get var_addr = %x\n", var_addr);
+
 			if(ret == 1){
 				int addr_offset = var_addr - VAR_ADDRES_REPORT_BASE;
-				internal_callback.keypress_callback[addr_offset].callback(addr_offset, buf_word[0], NULL, 0, NULL);
-			}
-			switch(var_addr){
-			case VAR_ADDRES_PAGE05_SETZERO:
-				break;                      
-	
-			case VAR_ADDRES_PAGE_ONEKEYFLUSHCONTROL:
-				break; 
-			case VAR_ADDRES_PAGE06_FLUSHBYEQINTERVAL:
-				break;
-			case VAR_ADDRES_PAGE06_FLUSHBYDATE:
-				break;
-			case VAR_ADDRES_PAGE06_FLUSHAFTERDOSING:
-				break;
-				
-			case VAR_ADDRES_PAGE07_CONFIRMORRESET:
-				break;
-				
-			case VAR_ADDRES_PAGE08_NUMKEY:
-				break;
-			case VAR_ADDRES_PAGE08_CONFIRMORRESET:
-				break;
-				
-			case VAR_ADDRES_PAGE09_CONFIRMORRESET:
-				break;
-				
-			case VAR_ADDRES_PAGE10_LINESELECTION1_BASE:
-			case VAR_ADDRES_PAGE11_LINESELECTION2_BASE:
-				break;
-				
-			case VAR_ADDRES_PAGE12_CONFIRMORRESET:
-				break;
-				
-			case VAR_ADDRES_PAGE13_LINESELECTION1_BASE:
-			case VAR_ADDRES_PAGE14_LINESELECTION2_BASE:
-				break;
-				
-			case VAR_ADDRES_PAGE15_CONFIRMORRESET:
-				break;
-				
-			case VAR_ADDRES_PAGE17_CONFIRMORRESET:
-				break;
-				
-			case VAR_ADDRES_PAGE18_CONFIRMORRESETORSTOP1:
-				break;
-			case VAR_ADDRES_PAGE18_CONFIRMORRESET2:
-				break;
-				
-			case VAR_ADDRES_PAGE19_20_RESETZEROORCONFIRMORCANCEL:
-				break;
-				
-			case VAR_ADDRES_PAGE21_LINESELECTION1_BASE:
-			case VAR_ADDRES_PAGE22_LINESELECTION2_BASE:
-				break;
-				
-			case VAR_ADDRES_PAGE23_CANCEL:
-				break;
-				
-			case VAR_ADDRES_PAGE24_CONFIRMORRESETORGENORCAL:
-				break;
-			case VAR_ADDRES_PAGE25_CONFIRMORRESETORGENORCAL:
-				break;
-				
-			case VAR_ADDRES_PAGE26_CONFIRMORRESETORGEN:
-				break;
-				
-			case VAR_ADDRES_PAGE27_DAY:
-				break;
-				
-			case VAR_ADDRES_PAGE29_DAY:
-				break;
-				
-			case VAR_ADDRES_PAGE31_DAY:
-				break;
-			case VAR_ADDRES_PAGE33_DAY:
-				break;
-				
-			case VAR_ADDRES_PAGE36_NEXTORPREV:
-				break;
-			case VAR_ADDRES_PAGE43_UPGRADE:
-				break;
-			case VAR_ADDRES_PAGE_CHANGE_NO:
-				break;
+				DGUS_REPORT_CALLBACK report_callback;
 
-			default:
-				{
+				printf("addr_offset = %d\n", addr_offset);
+				printf("internal_callback size = %d\n", sizeof(internal_keypress_callback_array)/sizeof(struct dgus_keypress_callback));
+				if(addr_offset >= 0 &&
+					addr_offset <  sizeof(internal_keypress_callback_array)/sizeof(struct dgus_keypress_callback)){
+					report_callback = internal_callback.keypress_callback[addr_offset].callback;
+					if(report_callback != NULL){
+						report_callback(addr_offset, buf_word[0], NULL, 0, NULL);
+					}
 				}
+				//addr_offset = var_addr - 0x1000;
+				//if(addr_offset >= 0 &&
+				//	addr_offset <  sizeof(internal_var_report_callback_array)/sizeof(struct dgus_keypress_callback)){
+				//	report_callback = internal_var_report_callback_array[addr_offset].callback;
+				//	if(report_callback != NULL){
+				//		report_callback(addr_offset, buf_word[0], NULL, 0, NULL);
+				//	}
+				//}
+
 			}
 		}
 	}
@@ -922,6 +1087,7 @@ void dgus_waiting_thread_func(void *para){
 
 int dgus_init(struct dgus_callback *main_callback){
 
+	unsigned char ver;
 	if(dgus_fd > 0){
 		return 0;
 	}
@@ -935,6 +1101,9 @@ int dgus_init(struct dgus_callback *main_callback){
 	/*
 	 *	to be done
 	 */
+	ver = _dgus_read_version();
+	printf("the dgus ver is %u\n", ver);
+
 	p_main_callback = main_callback;
 	pthread_create(&dgus_thread,NULL,(void*)dgus_waiting_thread_func,NULL);
 	return 0;
@@ -944,6 +1113,11 @@ void dgus_deinit(){
 	if(dgus_fd > 0){
 		close(dgus_fd);
 	}
+}
+
+void dgus_get_now_date(unsigned char *data, int len){
+
+	dgus_access_reg(0x20, 0, data, len);
 }
 
 

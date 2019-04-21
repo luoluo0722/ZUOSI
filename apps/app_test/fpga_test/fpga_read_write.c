@@ -26,7 +26,7 @@ int main(int argc,char **argv)
 	}
 
 	buf[0] = strtoul(argv[3], 0, 0);
-	buf[1] = 0x0;
+	buf[1] = 0;
 
 	if(strcmp(argv[2], "0") == 0){
 		is_write = 0;
@@ -43,6 +43,7 @@ int main(int argc,char **argv)
 	if(is_write == 0){
 		printf("read test\n");
 		read(fd, buf, 4);
+		printf("byte1 = %x, byte2 %x\n", buf[2], buf[3]);
 	}else if(is_write == 1){
 		printf("write test\n");
 		write(fd, buf, 4);

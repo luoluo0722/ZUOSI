@@ -274,10 +274,14 @@ void henhouse_page08_press_numkey(unsigned short key_addr_offset,
 void henhouse_page08_press_confirmorreset(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	if(len == NULL){ /* confirm set */
+		int i = 0;
 		startyear_flushbydate = data_buf[0];
 		startmon_flushbydate = data_buf[1];
-		stopyear_flushbydate = data_buf[3];
-		stopmon_flushbydate = data_buf[4];
+		stopyear_flushbydate = data_buf[2];
+		stopmon_flushbydate = data_buf[3];
+		while(i < 31){
+			day_flushbydate[i] = data_buf[i + 4];
+		}
 	}else{
 		int i = 0;
 		data_buf[0] = startyear_flushbydate = FLUSH_DEFAULT_STARTYEAR;

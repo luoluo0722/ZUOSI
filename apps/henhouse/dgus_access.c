@@ -170,7 +170,8 @@ static void dgus_page08_press_confirmorreset(unsigned short key_addr_offset,
 	if(key == 0x1){ /* confirm */
 		dgus_access_address(0x100d, 0, callback_buf_word, 2);
 		dgus_access_address(0x102f, 0, callback_buf_word + 2, 2);
-		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 4, NULL);
+		dgus_access_address(0x0240, 0, callback_buf_word + 4, 31);
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 35, NULL);
 	}else if(key == 0x2){ /* reset */
 		int ret_len;
 		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 2, &ret_len);

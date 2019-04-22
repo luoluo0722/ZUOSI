@@ -3,7 +3,7 @@
 MAKE_JOBS ?= 1
 
 all: ubifsimg
-ubifsimg: linux u-boot-spl linux-dtbs busybox vsftpd app_test mtd-utils sqlite
+ubifsimg: linux u-boot-spl linux-dtbs busybox vsftpd app_test mtd-utils sqlite henhouse
 clean: linux_clean u-boot-spl_clean linux-dtbs_clean busybox_clean ncurses_clean mysql_clean sqlite_clean vsftpd_clean clean_out_dir
 install: linux_install u-boot-spl_install linux-dtbs_install
 

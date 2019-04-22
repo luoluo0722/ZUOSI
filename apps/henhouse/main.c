@@ -120,6 +120,7 @@ static pthread_cond_t eqintervalthd_run_cond;
 static void henhouse_flush_byeqinterval_thread_func(void *para){
 	time_t now;
 	time_t future;
+	int wait_sec;
 
 	printf("thread Start1\n");
 	pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
@@ -134,7 +135,11 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 	future = get_epoch_for_date(year_byeqinterval, month_byeqinterval, day_byeqinterval);
 	printf("thread Start3\n");
 	printf("Sleep %d\n", future - now);
-	setTimer(future - now); /* wait for the date */
+	wait_sec = future - now;
+	if(wait_sec < 0){
+		wait_sec = 0;
+	}
+	setTimer(wait_sec); /* wait for the date */
 
 	while(1){
 		autoflush_lineselect();
@@ -160,6 +165,7 @@ static void henhouse_flush_bydate_thread_func(void *para){
 	time_t future;
 	int year = startyear_flushbydate;
 	int mon = startmon_flushbydate;
+	int wait_sec;
 
 	pthread_mutex_lock(&bydatethd_run_cond_mutex);
 	while(enable_flush_bydate == 0){
@@ -175,7 +181,11 @@ static void henhouse_flush_bydate_thread_func(void *para){
 			if(day_flushbydate[i] == 1){
 				now = time(NULL);
 				future = get_epoch_for_date(year, mon, i + 1);
-				setTimer(future - now);
+				wait_sec = future - now;
+				if(wait_sec < 0){
+					wait_sec = 0;
+				}
+				setTimer(wait_sec);
 				autoflush_lineselect();
 			}
 			i++;

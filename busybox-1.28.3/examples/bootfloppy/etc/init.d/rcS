@@ -54,3 +54,5 @@ then
         telnetd&
 fi
 
+/bin/henhouse_core /dev/ttyS1&
+

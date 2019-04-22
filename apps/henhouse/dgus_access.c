@@ -125,7 +125,7 @@ static void dgus_page05_presss_resetzero(unsigned short key_addr_offset,
 
 static void dgus_page06_press_onekeyflushctl(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key - 1, NULL, 0, NULL);
+	p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, NULL, 0, NULL);
 }
 static void dgus_page06_press_byeqinterval(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
@@ -874,6 +874,7 @@ static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
 	int buf_len, cmd_len;
 	int nread;
 	int cmd_code_len;
+	int i;
 
 	if(reg > 0xff){
 		return -1;
@@ -912,12 +913,13 @@ static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
 
 	write(dgus_fd, buf_byte, cmd_len);
 	if(is_write == 0){
-		nread = read(dgus_fd, buf_byte, cmd_len + 1);
-		if(nread != cmd_len + 1){
+		nread = read(dgus_fd, buf_byte, cmd_len + len);
+		if(nread != cmd_len + len){
 			//free(buf);
 			return -6;
 		}
-		memcpy(data, buf_byte + 6, len);
+
+		memcpy(data, buf_byte + cmd_len, len);
 	}
 	//free(buf);
 	return 0;
@@ -1087,6 +1089,8 @@ static void dgus_waiting_thread_func(void *para){
 	}
 
 }
+
+
 /************************************************ 
 设置操作系统时间 
 参数:*dt数据格式为"2006-4-20 20:30:30" 
@@ -1100,15 +1104,21 @@ static int dgus_set_system_time()
 	struct timeval tv;  
 	time_t timep; 
 	unsigned char date[7];
+	int i = 0;
 
 	dgus_access_reg(0x20, 0, date, 7);
+	while(i < 7){
+			printf("date[%d] = %d ", i, (date[i] / 16) * 10 + (date[i] % 16));
+			i++;
+	}
+	printf("\n");
 
-    _tm.tm_sec = date[6];  
-    _tm.tm_min = date[5];  
-    _tm.tm_hour = date[4];  
-    _tm.tm_mday = date[2];  
-    _tm.tm_mon = date[1] - 1;  
-    _tm.tm_year = date[0] + 2000 - 1900;  
+    _tm.tm_sec = (date[6] / 16) * 10 + (date[6] % 16);  
+    _tm.tm_min = (date[5] / 16) * 10 + (date[5] % 16);  
+    _tm.tm_hour = (date[4] / 16) * 10 + (date[4] % 16);  
+    _tm.tm_mday = (date[2] / 16) * 10 + (date[2] % 16);  
+    _tm.tm_mon = (date[1] / 16) * 10 + (date[1] % 16) - 1;  
+    _tm.tm_year = (date[0] / 16) * 10 + (date[0] % 16) + 2000 - 1900; 
   
     timep = mktime(&_tm);  
     tv.tv_sec = timep;  

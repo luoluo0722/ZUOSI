@@ -121,6 +121,7 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 	time_t now;
 	time_t future;
 
+	printf("thread Start1\n");
 	pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
 	while(enable_flush_byeqinterval == 0){
 		pthread_cond_wait(&eqintervalthd_run_cond,
@@ -128,9 +129,11 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 	}
 	pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
 
+	printf("thread Start2\n");
 	now = time(NULL);
 	future = get_epoch_for_date(year_byeqinterval, month_byeqinterval, day_byeqinterval);
-
+	printf("thread Start3\n");
+	printf("Sleep %d\n", future - now);
 	setTimer(future - now); /* wait for the date */
 
 	while(1){
@@ -202,12 +205,20 @@ static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset,
 	//henhouse_flush_operate(autoflush_min, autoflush_sec);
 	if(flush_byeqinterval == 1){
 		if(key == 0x1){
+			if(enable_flush_byeqinterval == 1){
+				return;
+			}
+			printf("Start flush thread\n");
 			pthread_create(&henhouse_flush_byeqinterval_thread,NULL,(void*)henhouse_flush_byeqinterval_thread_func, (void *)NULL);
 			pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
 			enable_flush_byeqinterval = 1;
 			pthread_cond_broadcast(&eqintervalthd_run_cond);
 			pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
+			printf("Start after flush thread\n");
 		}else{
+			if(enable_flush_byeqinterval == 0){
+					return;
+			}
 			pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
 			enable_flush_byeqinterval = 0;
 			pthread_cond_broadcast(&eqintervalthd_run_cond);
@@ -216,12 +227,18 @@ static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset,
 		}
 	}else if (flush_bydate == 1){
 		if(key == 0x1){
+			if(enable_flush_bydate == 1){
+				return;
+			}
 			pthread_create(&henhouse_flush_bydate_thread,NULL,(void*)henhouse_flush_bydate_thread_func, (void *)NULL);
 			pthread_mutex_lock(&bydatethd_run_cond_mutex);
 			enable_flush_bydate = 1;
 			pthread_cond_broadcast(&bydatethd_run_cond);
 			pthread_mutex_unlock(&bydatethd_run_cond_mutex);
 		}else{
+			if(enable_flush_bydate == 0){
+				return;
+			}
 			pthread_mutex_lock(&bydatethd_run_cond_mutex);
 			enable_flush_bydate = 0;
 			pthread_cond_broadcast(&bydatethd_run_cond);
@@ -786,6 +803,7 @@ int main(int argc,char **argv){
 	henhouse_flush_byeqinterval_init();
 	henhouse_flush_bydate_init();
 	while(1){
+			setTimer(100);
 	}
 	return 0;
 

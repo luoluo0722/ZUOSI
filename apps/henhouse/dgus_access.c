@@ -10,7 +10,8 @@
 #include <pthread.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include <pthread.h> 
+#include <pthread.h>
+#include <time.h>
 
 #include "dgus_access.h"
 
@@ -144,7 +145,7 @@ static void dgus_page07_press_confirmorreset(unsigned short key_addr_offset,
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	memset(callback_buf_word, 0, sizeof(callback_buf_word));
 	if(key == 0x1){ /* confirm */
-		dgus_access_address(0x1008, 0, callback_buf_word, 1);
+		dgus_access_address(0x1008, 0, callback_buf_word, 5);
 		//memcpy(callback_buf_word, date_eqinterval, sizeof(date_eqinterval));
 		
 		printf("%d, %d, %d, %d, %d\n", callback_buf_word[0], callback_buf_word[1],
@@ -168,7 +169,8 @@ static void dgus_page08_press_confirmorreset(unsigned short key_addr_offset,
 	memset(callback_buf_word, 0, sizeof(callback_buf_word));
 	if(key == 0x1){ /* confirm */
 		dgus_access_address(0x100d, 0, callback_buf_word, 2);
-		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 2, NULL);
+		dgus_access_address(0x102f, 0, callback_buf_word + 2, 2);
+		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 4, NULL);
 	}else if(key == 0x2){ /* reset */
 		int ret_len;
 		p_main_callback->keypress_callback[key_addr_offset].callback(key_addr_offset, key, callback_buf_word, 2, &ret_len);
@@ -1048,7 +1050,7 @@ static int dgus_access_address(unsigned short addr, int is_write,
 
 }
 
-void dgus_waiting_thread_func(void *para){
+static void dgus_waiting_thread_func(void *para){
 	int ret;
 	unsigned short var_addr;
 	//struct dgus_callback *main_callback = (struct dgus_callback *)para;
@@ -1084,10 +1086,45 @@ void dgus_waiting_thread_func(void *para){
 	}
 
 }
+/************************************************ 
+设置操作系统时间 
+参数:*dt数据格式为"2006-4-20 20:30:30" 
+调用方法: 
+    char *pt="2006-4-20 20:30:30"; 
+    SetSystemTime(pt); 
+**************************************************/  
+static int dgus_set_system_time()  
+{  
+	struct tm _tm;  
+	struct timeval tv;  
+	time_t timep; 
+	unsigned char date[7];
+
+	dgus_access_reg(0x20, 0, date, 7);
+
+    _tm.tm_sec = date[6];  
+    _tm.tm_min = date[5];  
+    _tm.tm_hour = date[4];  
+    _tm.tm_mday = date[2];  
+    _tm.tm_mon = date[1] - 1;  
+    _tm.tm_year = date[0] + 2000 - 1900;  
+  
+    timep = mktime(&_tm);  
+    tv.tv_sec = timep;  
+    tv.tv_usec = 0;  
+    if(settimeofday (&tv, (struct timezone *) 0) < 0)  
+    {  
+	    printf("Set system datatime error!/n");  
+	    return -1;  
+    }  
+    return 0;  
+}  
+
 
 int dgus_init(char *device_path, struct dgus_callback *main_callback){
 
 	unsigned char ver;
+	
 	if(dgus_fd > 0){
 		return 0;
 	}
@@ -1103,6 +1140,9 @@ int dgus_init(char *device_path, struct dgus_callback *main_callback){
 	 */
 	ver = _dgus_read_version();
 	printf("the dgus ver is %u\n", ver);
+
+	
+	dgus_set_system_time();
 
 	p_main_callback = main_callback;
 	pthread_create(&dgus_thread,NULL,(void*)dgus_waiting_thread_func,NULL);

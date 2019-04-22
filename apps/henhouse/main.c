@@ -21,9 +21,9 @@ static int flush_byeqinterval = 0;
 static int flush_bydate = 0;
 static int flush_afterdosing = 0;
 
-#define FLUSH_DEFAULT_YEAR 2000
-#define FLUSH_DEFAULT_MON 1
-#define FLUSH_DEFAULT_DAY 1
+#define FLUSH_DEFAULT_YEAR 2019
+#define FLUSH_DEFAULT_MON 4
+#define FLUSH_DEFAULT_DAY 24
 #define FLUSH_DEFAULT_HOUR 24
 #define FLUSH_DEFAULT_MIN 0
 static int year_byeqinterval = FLUSH_DEFAULT_YEAR;
@@ -32,12 +32,16 @@ static int day_byeqinterval = FLUSH_DEFAULT_DAY;
 static int hour_byeqinterval = FLUSH_DEFAULT_HOUR;
 static int minute_byeqinterval = FLUSH_DEFAULT_MIN;
 
-#define FLUSH_DEFAULT_STARTHOUR 0
-#define FLUSH_DEFAULT_STARTMIN 0
+#define FLUSH_DEFAULT_STARTYEAR 2019
+#define FLUSH_DEFAULT_STARTMON 4
+#define FLUSH_DEFAULT_STOPYEAR 2038
+#define FLUSH_DEFAULT_STOPMON 4
 static int day_flushbydate[31] = {0};
 static int day_flushbydate_index = 0;
-static int starthour_flushbydate = FLUSH_DEFAULT_STARTHOUR;
-static int startmin_flushbydate = FLUSH_DEFAULT_STARTMIN;
+static int startyear_flushbydate = FLUSH_DEFAULT_STARTYEAR;
+static int startmon_flushbydate = FLUSH_DEFAULT_STARTMON;
+static int stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
+static int stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
 
 #define FLUSH_DEFAULT_HOURINTERVAL 1
 #define FLUSH_DEFAULT_MININTERVAL 0
@@ -53,9 +57,9 @@ static int autoflush_sec = 0;
 static int hightempflush_min = 10;
 static int hightempflush_sec = 0;
 
-#define DOSING_DEFAULT_YEAR 2000
-#define DOSING_DEFAULT_MON 1
-#define DOSING_DEFAULT_DAY 1
+#define DOSING_DEFAULT_YEAR 2019
+#define DOSING_DEFAULT_MON 4
+#define DOSING_DEFAULT_DAY 24
 #define DOSING_DEFAULT_HOUR 0
 #define DOSING_DEFAULT_MIN 0
 #define DOSING_DEFAULT_SEC 0
@@ -66,7 +70,7 @@ static int starthour_dosing = DOSING_DEFAULT_HOUR;
 static int startmin_dosing = DOSING_DEFAULT_MIN;
 static int startsec_dosing = DOSING_DEFAULT_SEC;
 
-void setTimer(int seconds){
+static void setTimer(int seconds){
 	struct timeval temp;
 
 	temp.tv_sec = seconds;
@@ -77,13 +81,160 @@ void setTimer(int seconds){
 	return;
 }
 
+static time_t get_epoch_for_date(int year, int mon, int day){
+	struct tm _tm;
+
+	_tm.tm_sec = 0;
+	_tm.tm_min = 0;
+	_tm.tm_hour = 0;
+	_tm.tm_mday = day;
+	_tm.tm_mon = mon - 1;
+	_tm.tm_year = year - 1900;
+	return mktime(&_tm);
+}
+
+struct flush_byeqinterval_para{
+	int interval;
+	int flush_time;
+	int *lineselection;
+	int len;
+};
+
+static void autoflush_lineselect(){
+	int i = 0;
+	while(i < 64){
+		if(autoflush_lineselection[i] == 1){
+			fpga_flushall_ctl_oneline(1, i);/* start flush */
+			setTimer(autoflush_min * 60 + autoflush_sec);
+			fpga_flushall_ctl_oneline(0, i);/* stop flush */
+		}
+		i++;
+	}
+}
+
+static pthread_t henhouse_flush_byeqinterval_thread;
+static int enable_flush_byeqinterval = 0;
+static pthread_mutex_t eqintervalthd_run_cond_mutex;
+static pthread_cond_t eqintervalthd_run_cond;
+
+static void henhouse_flush_byeqinterval_thread_func(void *para){
+	time_t now;
+	time_t future;
+
+	pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
+	while(enable_flush_byeqinterval == 0){
+		pthread_cond_wait(&eqintervalthd_run_cond,
+			&eqintervalthd_run_cond_mutex);
+	}
+	pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
+
+	now = time(NULL);
+	future = get_epoch_for_date(year_byeqinterval, month_byeqinterval, day_byeqinterval);
+
+	setTimer(future - now); /* wait for the date */
+
+	while(1){
+		autoflush_lineselect();
+		/* wait for the interval */
+		setTimer(hour_byeqinterval * 3600 + minute_byeqinterval * 60);
+	}
+
+
+}
+
+static void henhouse_flush_byeqinterval_init(){
+	pthread_mutex_init(&eqintervalthd_run_cond_mutex, NULL);
+	pthread_cond_init(&eqintervalthd_run_cond, NULL);
+}
+
+static pthread_t henhouse_flush_bydate_thread;
+static int enable_flush_bydate = 0;
+static pthread_mutex_t bydatethd_run_cond_mutex;
+static pthread_cond_t bydatethd_run_cond;
+
+static void henhouse_flush_bydate_thread_func(void *para){
+	time_t now;
+	time_t future;
+	int year = startyear_flushbydate;
+	int mon = startmon_flushbydate;
+
+	pthread_mutex_lock(&bydatethd_run_cond_mutex);
+	while(enable_flush_bydate == 0){
+		pthread_cond_wait(&bydatethd_run_cond,
+			&bydatethd_run_cond_mutex);
+	}
+	pthread_mutex_unlock(&bydatethd_run_cond_mutex);
+
+
+	while(1){
+		int i = 0;
+		while(i < 31){
+			if(day_flushbydate[i] == 1){
+				now = time(NULL);
+				future = get_epoch_for_date(year, mon, i + 1);
+				setTimer(future - now);
+				autoflush_lineselect();
+			}
+			i++;
+		}
+		mon++;
+		if(mon > 12){
+			mon = 1;
+			year++;
+		}
+		if(year == stopyear_flushbydate && stopmon_flushbydate){
+			break;
+		}
+		
+	}
+
+
+}
+
+static void henhouse_flush_bydate_init(){
+	pthread_mutex_init(&bydatethd_run_cond_mutex, NULL);
+	pthread_cond_init(&bydatethd_run_cond, NULL);
+}
+
 static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-	fpga_flushall_ctl(key);
+	//fpga_flushall_ctl(key);
+	//henhouse_flush_operate(autoflush_min, autoflush_sec);
+	if(flush_byeqinterval == 1){
+		if(key == 0x1){
+			pthread_create(&henhouse_flush_byeqinterval_thread,NULL,(void*)henhouse_flush_byeqinterval_thread_func, (void *)NULL);
+			pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
+			enable_flush_byeqinterval = 1;
+			pthread_cond_broadcast(&eqintervalthd_run_cond);
+			pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
+		}else{
+			pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
+			enable_flush_byeqinterval = 0;
+			pthread_cond_broadcast(&eqintervalthd_run_cond);
+			pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
+			pthread_cancel(henhouse_flush_byeqinterval_thread);
+		}
+	}else if (flush_bydate == 1){
+		if(key == 0x1){
+			pthread_create(&henhouse_flush_bydate_thread,NULL,(void*)henhouse_flush_bydate_thread_func, (void *)NULL);
+			pthread_mutex_lock(&bydatethd_run_cond_mutex);
+			enable_flush_bydate = 1;
+			pthread_cond_broadcast(&bydatethd_run_cond);
+			pthread_mutex_unlock(&bydatethd_run_cond_mutex);
+		}else{
+			pthread_mutex_lock(&bydatethd_run_cond_mutex);
+			enable_flush_bydate = 0;
+			pthread_cond_broadcast(&bydatethd_run_cond);
+			pthread_mutex_unlock(&bydatethd_run_cond_mutex);
+			pthread_cancel(henhouse_flush_bydate_thread);
+		}
+
+	}
 }
 
 static void henhouse_page06_press_byeqinterval(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+
 	flush_byeqinterval = key;
 }
 static void henhouse_page06_press_bydate(unsigned short key_addr_offset, 
@@ -104,7 +255,8 @@ void henhouse_page07_press_confirmorreset(unsigned short key_addr_offset,
 		hour_byeqinterval = data_buf[3];
 		minute_byeqinterval = data_buf[4];
 		printf("%d, %d, %d, %d, %d\n", year_byeqinterval, month_byeqinterval,
-			day_byeqinterval,hour_byeqinterval, minute_byeqinterval );
+			day_byeqinterval,hour_byeqinterval, minute_byeqinterval);
+
 	}else{
 		data_buf[0] = year_byeqinterval = FLUSH_DEFAULT_YEAR;
 		data_buf[1] = month_byeqinterval = FLUSH_DEFAULT_MON;
@@ -116,22 +268,26 @@ void henhouse_page07_press_confirmorreset(unsigned short key_addr_offset,
 }
 void henhouse_page08_press_numkey(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-	day_flushbydate[day_flushbydate_index++] = key;
+	day_flushbydate[key - 1] = 0;
 }
 
 void henhouse_page08_press_confirmorreset(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	if(len == NULL){ /* confirm set */
-		starthour_flushbydate = data_buf[0];
-		startmin_flushbydate = data_buf[1];
+		startyear_flushbydate = data_buf[0];
+		startmon_flushbydate = data_buf[1];
+		stopyear_flushbydate = data_buf[3];
+		stopmon_flushbydate = data_buf[4];
 	}else{
-		data_buf[0] = starthour_flushbydate = FLUSH_DEFAULT_HOURINTERVAL;
-		data_buf[1] = startmin_flushbydate = FLUSH_DEFAULT_MININTERVAL;
-		*len = 2;
-		while(--day_flushbydate_index >= 0){
-			day_flushbydate[day_flushbydate_index] = 0;
+		int i = 0;
+		data_buf[0] = startyear_flushbydate = FLUSH_DEFAULT_STARTYEAR;
+		data_buf[1] = startmon_flushbydate = FLUSH_DEFAULT_STARTMON;
+		data_buf[3] = stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
+		data_buf[4] = stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
+		*len = 4;
+		while(i < 31){
+			day_flushbydate[i++] = 0;
 		}
-		day_flushbydate_index = 0;
 		
 	}
 }
@@ -142,8 +298,8 @@ void henhouse_page09_press_confirmorcancel(unsigned short key_addr_offset,
 		hourinterval_afterdosing = data_buf[0];
 		mininterval_afterdosing = data_buf[1];
 	}else{
-		data_buf[0] = hourinterval_afterdosing = FLUSH_DEFAULT_STARTHOUR;
-		data_buf[1] = mininterval_afterdosing = FLUSH_DEFAULT_STARTMIN;
+		data_buf[0] = hourinterval_afterdosing = FLUSH_DEFAULT_HOURINTERVAL;
+		data_buf[1] = mininterval_afterdosing = FLUSH_DEFAULT_MININTERVAL;
 		*len = 2;
 	}
 }
@@ -190,6 +346,19 @@ void henhouse_page17_press_confirmorreset(unsigned short key_addr_offset,
 		*len = 2;
 	}
 }
+
+struct dosing_para{
+	int interval;
+	int dosing_time;
+};
+
+static struct dosing_para para_dose = {0};
+static pthread_t henhouse_dosing_thread;
+static void henhouse_dosing_thread_func(void *para){
+
+
+}
+
 
 void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
@@ -610,6 +779,8 @@ int main(int argc,char **argv){
 		printf("dgus_init error\n");
 		return ret;
 	}
+	henhouse_flush_byeqinterval_init();
+	henhouse_flush_bydate_init();
 	while(1){
 	}
 	return 0;

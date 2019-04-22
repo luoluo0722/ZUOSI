@@ -65,10 +65,19 @@ void fpga_deinit(){
 }
 
 void fpga_flushall_ctl(unsigned short is_start){
-	unsigned short data = is_start ? 0xffff : 0;
+	unsigned short data = is_start ? 0 : 0xffff;
 	int i = 0;
 	while(i < 4){
 		fpga_write_mem(i << 1, &data, 1);
 	}
+}
+
+void fpga_flushall_ctl_oneline(unsigned short is_start, int line){
+	int addr = line/16;
+	unsigned short mask = 1 << (line % 16);
+	unsigned short data = is_start ? ~mask : 0xffff;
+
+	fpga_write_mem(addr << 1, &data, 1);
+
 }
 

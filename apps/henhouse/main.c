@@ -136,10 +136,9 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 	printf("thread Start3\n");
 	printf("Sleep %d\n", future - now);
 	wait_sec = future - now;
-	if(wait_sec < 0){
-		wait_sec = 0;
+	if(wait_sec > 0){
+		setTimer(wait_sec); /* wait for the date */
 	}
-	setTimer(wait_sec); /* wait for the date */
 
 	while(1){
 		autoflush_lineselect();
@@ -182,10 +181,11 @@ static void henhouse_flush_bydate_thread_func(void *para){
 				now = time(NULL);
 				future = get_epoch_for_date(year, mon, i + 1);
 				wait_sec = future - now;
-				if(wait_sec < 0){
-					wait_sec = 0;
+				if(wait_sec >= 0){
+					setTimer(wait_sec);
+				}else{
+					continue;
 				}
-				setTimer(wait_sec);
 				autoflush_lineselect();
 			}
 			i++;

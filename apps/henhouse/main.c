@@ -115,6 +115,59 @@ static void autoflush_lineselect(){
 	}
 }
 
+static pthread_t henhouse_flush_onekey_thread;
+static int enable_flush_onekey = 0;
+static pthread_mutex_t onekeythd_run_cond_mutex;
+static pthread_cond_t onekeythd_run_cond;
+
+static void henhouse_flush_onekey_thread_func(void *para){
+
+
+	printf("thread Start1\n");
+	pthread_mutex_lock(&onekeythd_run_cond_mutex);
+	while(enable_flush_onekey == 0){
+		pthread_cond_wait(&onekeythd_run_cond,
+			&onekeythd_run_cond_mutex);
+	}
+	pthread_mutex_unlock(&onekeythd_run_cond_mutex);
+
+	autoflush_lineselect();
+
+}
+
+static void henhouse_flush_onkey_init(){
+	pthread_mutex_init(&onekeythd_run_cond_mutex, NULL);
+	pthread_cond_init(&onekeythd_run_cond, NULL);
+}
+
+static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+	//fpga_flushall_ctl(key);
+	//henhouse_flush_operate(autoflush_min, autoflush_sec);
+	if(key == 0x1){
+		if(enable_flush_onekey == 1){
+			return;
+		}
+		printf("Start flush thread\n");
+		pthread_create(&henhouse_flush_onekey_thread,NULL,(void*)henhouse_flush_onekey_thread_func, (void *)NULL);
+		pthread_mutex_lock(&onekeythd_run_cond_mutex);
+		enable_flush_onekey = 1;
+		pthread_cond_broadcast(&onekeythd_run_cond);
+		pthread_mutex_unlock(&onekeythd_run_cond_mutex);
+		printf("Start after flush thread\n");
+	}else{
+		if(enable_flush_onekey == 0){
+				return;
+		}
+		pthread_mutex_lock(&onekeythd_run_cond_mutex);
+		enable_flush_onekey = 0;
+		pthread_cond_broadcast(&onekeythd_run_cond);
+		pthread_mutex_unlock(&onekeythd_run_cond_mutex);
+		pthread_cancel(henhouse_flush_onekey_thread);
+	}
+
+}
+
 static pthread_t henhouse_flush_byeqinterval_thread;
 static int enable_flush_byeqinterval = 0;
 static pthread_mutex_t eqintervalthd_run_cond_mutex;
@@ -155,6 +208,34 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 static void henhouse_flush_byeqinterval_init(){
 	pthread_mutex_init(&eqintervalthd_run_cond_mutex, NULL);
 	pthread_cond_init(&eqintervalthd_run_cond, NULL);
+}
+
+static void henhouse_page06_press_byeqinterval(unsigned short key_addr_offset, 
+	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
+
+	flush_byeqinterval = key;
+	if(key == 0x1){
+		if(enable_flush_byeqinterval == 1){
+			return;
+		}
+		printf("Start flush thread\n");
+		pthread_create(&henhouse_flush_byeqinterval_thread,NULL,(void*)henhouse_flush_byeqinterval_thread_func, (void *)NULL);
+		pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
+		enable_flush_byeqinterval = 1;
+		pthread_cond_broadcast(&eqintervalthd_run_cond);
+		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
+		printf("Start after flush thread\n");
+	}else{
+		if(enable_flush_byeqinterval == 0){
+				return;
+		}
+		pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
+		enable_flush_byeqinterval = 0;
+		pthread_cond_broadcast(&eqintervalthd_run_cond);
+		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
+		pthread_cancel(henhouse_flush_byeqinterval_thread);
+	}
+
 }
 
 static pthread_t henhouse_flush_bydate_thread;
@@ -212,64 +293,30 @@ static void henhouse_flush_bydate_init(){
 	pthread_cond_init(&bydatethd_run_cond, NULL);
 }
 
-static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset, 
-	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-	//fpga_flushall_ctl(key);
-	//henhouse_flush_operate(autoflush_min, autoflush_sec);
-	if(flush_byeqinterval == 1){
-		if(key == 0x1){
-			if(enable_flush_byeqinterval == 1){
-				return;
-			}
-			printf("Start flush thread\n");
-			pthread_create(&henhouse_flush_byeqinterval_thread,NULL,(void*)henhouse_flush_byeqinterval_thread_func, (void *)NULL);
-			pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
-			enable_flush_byeqinterval = 1;
-			pthread_cond_broadcast(&eqintervalthd_run_cond);
-			pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
-			printf("Start after flush thread\n");
-		}else{
-			if(enable_flush_byeqinterval == 0){
-					return;
-			}
-			pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
-			enable_flush_byeqinterval = 0;
-			pthread_cond_broadcast(&eqintervalthd_run_cond);
-			pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
-			pthread_cancel(henhouse_flush_byeqinterval_thread);
-		}
-	}else if (flush_bydate == 1){
-		if(key == 0x1){
-			if(enable_flush_bydate == 1){
-				return;
-			}
-			pthread_create(&henhouse_flush_bydate_thread,NULL,(void*)henhouse_flush_bydate_thread_func, (void *)NULL);
-			pthread_mutex_lock(&bydatethd_run_cond_mutex);
-			enable_flush_bydate = 1;
-			pthread_cond_broadcast(&bydatethd_run_cond);
-			pthread_mutex_unlock(&bydatethd_run_cond_mutex);
-		}else{
-			if(enable_flush_bydate == 0){
-				return;
-			}
-			pthread_mutex_lock(&bydatethd_run_cond_mutex);
-			enable_flush_bydate = 0;
-			pthread_cond_broadcast(&bydatethd_run_cond);
-			pthread_mutex_unlock(&bydatethd_run_cond_mutex);
-			pthread_cancel(henhouse_flush_bydate_thread);
-		}
 
-	}
-}
-
-static void henhouse_page06_press_byeqinterval(unsigned short key_addr_offset, 
-	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-
-	flush_byeqinterval = key;
-}
 static void henhouse_page06_press_bydate(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	flush_bydate = key;
+	if(key == 0x1){
+		if(enable_flush_bydate == 1){
+			return;
+		}
+		pthread_create(&henhouse_flush_bydate_thread,NULL,(void*)henhouse_flush_bydate_thread_func, (void *)NULL);
+		pthread_mutex_lock(&bydatethd_run_cond_mutex);
+		enable_flush_bydate = 1;
+		pthread_cond_broadcast(&bydatethd_run_cond);
+		pthread_mutex_unlock(&bydatethd_run_cond_mutex);
+	}else{
+		if(enable_flush_bydate == 0){
+			return;
+		}
+		pthread_mutex_lock(&bydatethd_run_cond_mutex);
+		enable_flush_bydate = 0;
+		pthread_cond_broadcast(&bydatethd_run_cond);
+		pthread_mutex_unlock(&bydatethd_run_cond_mutex);
+		pthread_cancel(henhouse_flush_bydate_thread);
+	}
+
 }
 static void henhouse_page06_press_afterdosing(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
@@ -879,6 +926,7 @@ int main(int argc,char **argv){
 	henhouse_flush_byeqinterval_init();
 	henhouse_flush_bydate_init();
 	henhouse_flush_manual_init();
+	henhouse_flush_onkey_init();
 	while(1){
 			setTimer(100);
 	}

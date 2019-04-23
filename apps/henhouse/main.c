@@ -48,7 +48,7 @@ static int stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
 static int hourinterval_afterdosing = FLUSH_DEFAULT_HOURINTERVAL;
 static int mininterval_afterdosing = FLUSH_DEFAULT_HOURINTERVAL;
 
-static int autoflush_lineselection[64] = {0};
+static int autoflush_lineselection[64] = {1, 1, 1, 1, 1, 1, 1, 1};
 static int manualflush_lineselection[64] = {0};
 
 static int autoflush_min = 10;
@@ -859,6 +859,16 @@ static void henhouse_page09_display(unsigned short page_num,
 	*len = 2;
 }
 
+static void henhouse_page10_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int i = 0;
+	while(i < 64){
+		data_buf[i] = autoflush_lineselection[i];
+		i++;
+	}
+	*len = 64;
+}
+
 static void henhouse_page12_display(unsigned short page_num, 
 	unsigned short *data_buf, int buf_len, int *len){
 	data_buf[0] = autoflush_min;
@@ -956,8 +966,7 @@ static struct dgus_page_callback main_page_callback_array[] = {
 	{7, henhouse_page07_display},
 	{8, henhouse_page08_display},
 	{9, henhouse_page09_display},
-	{9, NULL},
-	{10, NULL},
+	{10, henhouse_page10_display},
 	{11, NULL},
 	{12, henhouse_page12_display},
 	{13, NULL},

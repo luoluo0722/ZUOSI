@@ -819,6 +819,36 @@ static struct dgus_keypress_callback main_keypress_callback_array[] = {
 
 static void henhouse_page05_display(unsigned short page_num, 
 	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = 0x1816;
+	data_buf[1] = 0x26;
+	data_buf[2] = 0x2100;
+	data_buf[3] = 0x0200;
+	data_buf[4] = 12;
+	data_buf[5] = 59;
+	data_buf[6] = 6;
+	data_buf[7] = 6;
+	data_buf[8] = 2;
+	*len = 9;
+}
+
+
+static void henhouse_page07_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = year_byeqinterval = FLUSH_DEFAULT_YEAR;
+	data_buf[1] = month_byeqinterval = FLUSH_DEFAULT_MON;
+	data_buf[2] = day_byeqinterval = FLUSH_DEFAULT_DAY;
+	data_buf[3] = hour_byeqinterval = FLUSH_DEFAULT_HOUR;
+	data_buf[4] = minute_byeqinterval = FLUSH_DEFAULT_MIN;
+	*len = 5;
+}
+
+
+static void henhouse_page08_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = startyear_flushbydate = FLUSH_DEFAULT_STARTYEAR;
+	data_buf[1] = startmon_flushbydate = FLUSH_DEFAULT_STARTMON;
+	data_buf[3] = stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
+	data_buf[4] = stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
 	*len = 4;
 }
 
@@ -861,6 +891,60 @@ static void henhouse_page18_display(unsigned short page_num,
 	*len = 6;
 }
 
+static void henhouse_page19_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = 0x3000;
+	data_buf[1] = startyear_dosing;
+	data_buf[2] = startmon_dosing;
+	data_buf[3] = startday_dosing;
+	data_buf[4] = 2019;
+	data_buf[5] = 6;
+	data_buf[6] = 1;
+	data_buf[7] = 0x20;
+	data_buf[8] = 0x40;
+	*len = 9;
+}
+
+
+static void henhouse_page24_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = 0x40;
+	data_buf[1] = 0x20;
+	data_buf[2] = 0x40;
+	*len = 3;
+}
+
+static void henhouse_page25_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = 0x04;
+	data_buf[1] = 0x01;
+	data_buf[2] = 0x05;
+	*len = 3;
+}
+
+static void henhouse_page26_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = 0x01;
+	data_buf[1] = 0x01;
+	data_buf[2] = 0x02;
+	*len = 3;
+}
+
+static void henhouse_page27_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = 0x02;
+	data_buf[1] = 0x02;
+	data_buf[2] = 0xF800;
+	data_buf[3] = 0x0A;
+	data_buf[4] = 0x10;
+	data_buf[5] = 0x14;
+	data_buf[6] = 0x20;
+	data_buf[7] = 0x1E;
+	data_buf[8] = 0x30;
+	*len = 9;
+}
+
+
 static struct dgus_page_callback main_page_callback_array[] = {
 	{0, NULL},
 	{1, NULL},
@@ -869,8 +953,9 @@ static struct dgus_page_callback main_page_callback_array[] = {
 	{4, NULL},
 	{5, henhouse_page05_display},
 	{6, NULL},
-	{7, NULL},
-	{8, henhouse_page09_display},
+	{7, henhouse_page07_display},
+	{8, henhouse_page08_display},
+	{9, henhouse_page09_display},
 	{9, NULL},
 	{10, NULL},
 	{11, NULL},
@@ -881,15 +966,15 @@ static struct dgus_page_callback main_page_callback_array[] = {
 	{16, henhouse_page16_display},
 	{17, henhouse_page17_display},
 	{18, henhouse_page18_display},
-	{19, NULL},
+	{19, henhouse_page19_display},
 	{20, NULL},
 	{21, NULL},
 	{22, NULL},
 	{23, NULL},
-	{24, NULL},
-	{25, NULL},
-	{26, NULL},
-	{27, NULL},
+	{24, henhouse_page24_display},
+	{25, henhouse_page25_display},
+	{26, henhouse_page26_display},
+	{27, henhouse_page27_display},
 	{28, NULL},
 	{29, NULL},
 	{30, NULL},

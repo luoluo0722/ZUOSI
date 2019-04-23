@@ -54,6 +54,9 @@ static int manualflush_lineselection[64] = {0};
 static int autoflush_min = 10;
 static int autoflush_sec = 0;
 
+static int manflush_min = 10;
+static int manflush_sec = 0;
+
 static int hightempflush_min = 10;
 static int hightempflush_sec = 0;
 
@@ -361,9 +364,72 @@ void henhouse_page13_14_press_lineseletion(unsigned short key_addr_offset,
 	manualflush_lineselection[index] = key;
 }
 
+static void manualflush_lineselect(){
+	int i = 0;
+	while(i < 64){
+		if(manualflush_lineselection[i] == 1){
+			fpga_flushall_ctl_oneline(1, i);/* start flush */
+			setTimer(manflush_min * 60 + manflush_sec);
+			fpga_flushall_ctl_oneline(0, i);/* stop flush */
+		}
+		i++;
+	}
+}
+
+static pthread_t henhouse_flush_manual_thread;
+static int enable_flush_manual = 0;
+static pthread_mutex_t manualthd_run_cond_mutex;
+static pthread_cond_t manualthd_run_cond;
+
+static void henhouse_flush_manual_thread_func(void *para){
+	time_t now;
+	time_t future;
+	int year = startyear_flushbydate;
+	int mon = startmon_flushbydate;
+	int wait_sec;
+
+	pthread_mutex_lock(&manualthd_run_cond_mutex);
+	while(enable_flush_manual == 0){
+		pthread_cond_wait(&manualthd_run_cond,
+			&manualthd_run_cond_mutex);
+	}
+	pthread_mutex_unlock(&manualthd_run_cond_mutex);
+
+
+	manualflush_lineselect();
+
+}
+
+static void henhouse_flush_manual_init(){
+	pthread_mutex_init(&manualthd_run_cond_mutex, NULL);
+	pthread_cond_init(&manualthd_run_cond, NULL);
+}
 void henhouse_page15_press_confirmorcancel(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-	/* start auto flush*/
+	/* start manual flush*/
+	if(key == 0x1){ /* confirm */
+		manflush_min = data_buf[0];
+		manflush_sec = data_buf[1];
+		if(enable_flush_manual == 1){
+			return;
+		}
+		printf("Start flush thread\n");
+		pthread_create(&henhouse_flush_manual_thread,NULL,(void*)henhouse_flush_manual_thread_func, (void *)NULL);
+		pthread_mutex_lock(&eqintervalthd_run_cond_mutex);
+		enable_flush_manual = 1;
+		pthread_cond_broadcast(&manualthd_run_cond);
+		pthread_mutex_unlock(&manualthd_run_cond_mutex);
+		printf("Start after flush thread\n");
+	}else if(key == 0x2){ /* cancel */
+		if(enable_flush_manual == 0){
+			return;
+		}
+		pthread_mutex_lock(&manualthd_run_cond_mutex);
+		enable_flush_manual = 0;
+		pthread_cond_broadcast(&manualthd_run_cond);
+		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
+		pthread_cancel(henhouse_flush_manual_thread);
+	}
 }
 
 void henhouse_page17_press_confirmorreset(unsigned short key_addr_offset, 
@@ -812,6 +878,7 @@ int main(int argc,char **argv){
 	}
 	henhouse_flush_byeqinterval_init();
 	henhouse_flush_bydate_init();
+	henhouse_flush_manual_init();
 	while(1){
 			setTimer(100);
 	}

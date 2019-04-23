@@ -240,8 +240,12 @@ static void dgus_page15_press_confirmorcancel(unsigned short key_addr_offset,
 	if(report_callback == NULL){
 		return;
 	}
-
-	report_callback(key_addr_offset, key, NULL, 0, NULL);
+	if(key == 0x1){ /* confirm */
+		dgus_access_address(0x1013, 0, callback_buf_word, 2);
+		report_callback(key_addr_offset, key, callback_buf_word, 2, NULL);
+	}else if(key == 0x2){ /* cancel */
+		report_callback(key_addr_offset, key, NULL, 0, NULL);
+	}
 }
 
 static void dgus_page17_press_confirmorreset(unsigned short key_addr_offset, 

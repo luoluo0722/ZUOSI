@@ -81,3 +81,20 @@ void fpga_flushall_ctl_oneline(unsigned short is_start, int line){
 
 }
 
+unsigned short fpga_read_temp(int i){
+	unsigned short addr = i + 4;
+	unsigned short data;
+
+	fpga_read_mem(addr << 1, &data, 1);
+	return data;
+}
+
+unsigned short fpga_read_pressure(int i){
+	unsigned short addr = i + 6;
+	unsigned short data;
+
+	fpga_read_mem(addr << 1, &data, 1);
+	return data;
+
+}
+

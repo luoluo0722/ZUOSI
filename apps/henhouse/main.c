@@ -363,8 +363,8 @@ void henhouse_page08_press_confirmorreset(unsigned short key_addr_offset,
 		int i = 0;
 		data_buf[0] = startyear_flushbydate = FLUSH_DEFAULT_STARTYEAR;
 		data_buf[1] = startmon_flushbydate = FLUSH_DEFAULT_STARTMON;
-		data_buf[3] = stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
-		data_buf[4] = stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
+		data_buf[2] = stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
+		data_buf[3] = stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
 		*len = 4;
 		while(i < 31){
 			day_flushbydate[i++] = 0;
@@ -847,8 +847,8 @@ static void henhouse_page08_display(unsigned short page_num,
 	unsigned short *data_buf, int buf_len, int *len){
 	data_buf[0] = startyear_flushbydate = FLUSH_DEFAULT_STARTYEAR;
 	data_buf[1] = startmon_flushbydate = FLUSH_DEFAULT_STARTMON;
-	data_buf[3] = stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
-	data_buf[4] = stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
+	data_buf[2] = stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
+	data_buf[3] = stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
 	*len = 4;
 }
 

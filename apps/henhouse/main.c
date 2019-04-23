@@ -73,6 +73,9 @@ static int starthour_dosing = DOSING_DEFAULT_HOUR;
 static int startmin_dosing = DOSING_DEFAULT_MIN;
 static int startsec_dosing = DOSING_DEFAULT_SEC;
 
+static int dosing_min = 20;
+static int dosing_sec = 0;
+
 static void setTimer(int seconds){
 	struct timeval temp;
 
@@ -84,12 +87,12 @@ static void setTimer(int seconds){
 	return;
 }
 
-static time_t get_epoch_for_date(int year, int mon, int day){
+static time_t get_epoch_for_date(int year, int mon, int day, int hour, int min, int sec){
 	struct tm _tm;
 
-	_tm.tm_sec = 0;
-	_tm.tm_min = 0;
-	_tm.tm_hour = 0;
+	_tm.tm_sec = sec;
+	_tm.tm_min = min;
+	_tm.tm_hour = hour;
 	_tm.tm_mday = day;
 	_tm.tm_mon = mon - 1;
 	_tm.tm_year = year - 1900;
@@ -188,12 +191,14 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 
 	printf("thread Start2\n");
 	now = time(NULL);
-	future = get_epoch_for_date(year_byeqinterval, month_byeqinterval, day_byeqinterval);
+	future = get_epoch_for_date(year_byeqinterval, month_byeqinterval, day_byeqinterval, 0, 0, 0);
 	printf("thread Start3\n");
 	printf("Sleep %d\n", future - now);
 	wait_sec = future - now;
 	if(wait_sec > 0){
 		setTimer(wait_sec); /* wait for the date */
+	}else{
+		setTimer(hour_byeqinterval * 3600 + minute_byeqinterval * 60);
 	}
 
 	while(1){
@@ -263,7 +268,7 @@ static void henhouse_flush_bydate_thread_func(void *para){
 		while(i < 31){
 			if(day_flushbydate[i] == 1){
 				now = time(NULL);
-				future = get_epoch_for_date(year, mon, i + 1);
+				future = get_epoch_for_date(year, mon, i + 1, 0, 0, 0);
 				wait_sec = future - now;
 				if(wait_sec >= 0){
 					setTimer(wait_sec);
@@ -429,11 +434,6 @@ static pthread_mutex_t manualthd_run_cond_mutex;
 static pthread_cond_t manualthd_run_cond;
 
 static void henhouse_flush_manual_thread_func(void *para){
-	time_t now;
-	time_t future;
-	int year = startyear_flushbydate;
-	int mon = startmon_flushbydate;
-	int wait_sec;
 
 	pthread_mutex_lock(&manualthd_run_cond_mutex);
 	while(enable_flush_manual == 0){
@@ -491,18 +491,45 @@ void henhouse_page17_press_confirmorreset(unsigned short key_addr_offset,
 	}
 }
 
-struct dosing_para{
-	int interval;
-	int dosing_time;
-};
+static void dosing_henhouse(){
+}
 
-static struct dosing_para para_dose = {0};
 static pthread_t henhouse_dosing_thread;
-static void henhouse_dosing_thread_func(void *para){
+static int enable_dosing = 0;
+static pthread_mutex_t dosingthd_run_cond_mutex;
+static pthread_cond_t dosingthd_run_cond;
 
+static void henhouse_dosing_thread_func(void *para){
+	time_t now;
+	time_t future;
+
+	int wait_sec;
+
+	pthread_mutex_lock(&dosingthd_run_cond_mutex);
+	while(enable_dosing == 0){
+		pthread_cond_wait(&dosingthd_run_cond,
+			&dosingthd_run_cond_mutex);
+	}
+	pthread_mutex_unlock(&dosingthd_run_cond_mutex);
+
+
+	now = time(NULL);
+	future = get_epoch_for_date(startyear_dosing, startmon_dosing, startday_dosing, starthour_dosing, startmin_dosing, startsec_dosing);
+	printf("thread Start3\n");
+	printf("Sleep %d\n", future - now);
+	wait_sec = future - now;
+	if(wait_sec > 0){
+		setTimer(wait_sec); /* wait for the date */
+	}
+
+	dosing_henhouse();
 
 }
 
+static void henhouse_dosing_init(){
+	pthread_mutex_init(&dosingthd_run_cond_mutex, NULL);
+	pthread_cond_init(&dosingthd_run_cond, NULL);
+}
 
 void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
@@ -513,6 +540,16 @@ void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset,
 		starthour_dosing = data_buf[3];
 		startmin_dosing = data_buf[4];
 		startsec_dosing = data_buf[5];
+		if(enable_dosing == 1){
+			return;
+		}
+		printf("Start flush thread\n");
+		pthread_create(&henhouse_dosing_thread,NULL,(void*)henhouse_dosing_thread_func, (void *)NULL);
+		pthread_mutex_lock(&dosingthd_run_cond_mutex);
+		enable_dosing = 1;
+		pthread_cond_broadcast(&dosingthd_run_cond);
+		pthread_mutex_unlock(&dosingthd_run_cond_mutex);
+		printf("Start after flush thread\n");
 	}else if(key == 0x2){ /* reset */
 		startyear_dosing = data_buf[0] = DOSING_DEFAULT_YEAR;
 		startmon_dosing = data_buf[1] = DOSING_DEFAULT_MON;
@@ -522,6 +559,14 @@ void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset,
 		startsec_dosing = data_buf[5] = DOSING_DEFAULT_SEC;
 	}else if(key == 0x3){ /* stop */
 		/*stop dosing */
+		if(enable_dosing == 0){
+			return;
+		}
+		pthread_mutex_lock(&dosingthd_run_cond_mutex);
+		enable_dosing = 0;
+		pthread_cond_broadcast(&dosingthd_run_cond);
+		pthread_mutex_unlock(&dosingthd_run_cond_mutex);
+		pthread_cancel(henhouse_dosing_thread);
 	}
 }
 void henhouse_page18_press_confirmorreset(unsigned short key_addr_offset, 
@@ -1021,6 +1066,8 @@ int main(int argc,char **argv){
 	henhouse_flush_bydate_init();
 	henhouse_flush_manual_init();
 	henhouse_flush_onkey_init();
+	henhouse_dosing_init();
+
 	while(1){
 			setTimer(100);
 	}

@@ -800,6 +800,7 @@ static void dgus_page26_display(unsigned short page_num,
 	}
 }
 
+
 static void dgus_page27_display(unsigned short page_num, 
 	unsigned short *data_buf, int buf_len, int *len){
 	int ret_len;
@@ -811,6 +812,21 @@ static void dgus_page27_display(unsigned short page_num,
 	if(pagechange_callback != NULL){
 		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
 		dgus_access_address(0x1200, 1, callback_buf_word, ret_len);
+	}
+
+}
+
+static void dgus_page28_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	int ret_len;
+	DGUS_PAGECHANGE_CALLBACK pagechange_callback;
+
+	memset(callback_buf_word, 0, sizeof(callback_buf_word));
+	pagechange_callback = p_main_callback->page_callback[page_num].callback;
+
+	if(pagechange_callback != NULL){
+		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
+		dgus_access_address(0x1300, 1, callback_buf_word, ret_len);
 	}
 
 }
@@ -844,8 +860,7 @@ static struct dgus_page_callback internal_page_callback_array[] = {
 	{25, dgus_page25_display},
 	{26, dgus_page26_display},
 	{27, dgus_page27_display},
-	{27, NULL},
-	{28, NULL},
+	{28, dgus_page28_display},
 	{29, NULL},
 	{30, NULL},
 	{31, NULL},

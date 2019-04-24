@@ -999,6 +999,20 @@ static void henhouse_page27_display(unsigned short page_num,
 	*len = 9;
 }
 
+static void henhouse_page28_display(unsigned short page_num, 
+	unsigned short *data_buf, int buf_len, int *len){
+	data_buf[0] = 0x02;
+	data_buf[1] = 0x02;
+	data_buf[2] = 0xF800;
+	data_buf[3] = 0x0A;
+	data_buf[4] = 0x10;
+	data_buf[5] = 0x14;
+	data_buf[6] = 0x20;
+	data_buf[7] = 0x1E;
+	data_buf[8] = 0x30;
+	*len = 9;
+}
+
 
 static struct dgus_page_callback main_page_callback_array[] = {
 	{0, NULL},
@@ -1029,7 +1043,7 @@ static struct dgus_page_callback main_page_callback_array[] = {
 	{25, henhouse_page25_display},
 	{26, henhouse_page26_display},
 	{27, henhouse_page27_display},
-	{28, NULL},
+	{28, henhouse_page27_display},
 	{29, NULL},
 	{30, NULL},
 	{31, NULL},

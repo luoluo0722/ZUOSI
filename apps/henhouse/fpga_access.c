@@ -34,6 +34,7 @@ int fpga_write_mem(unsigned short addr, unsigned short *data, int len){
 
 	int ret = 0;
 
+	printf("addr = %x, data = %x\n", addr, data);
 	if(fpga_fd > 0 &&
 		data != NULL &&
 		len <= CONTROL_STATUS_MEM_LEN &&
@@ -46,28 +47,10 @@ int fpga_write_mem(unsigned short addr, unsigned short *data, int len){
 	return ret;
 }
 
-int fpga_init(){
-	if(fpga_fd > 0){
-		return 0;
-	}
-	fpga_fd = open(FPGA_DEVICE, O_RDWR);
-	if(fpga_fd < 0){
-		printf("open %s error\n", FPGA_DEVICE);
-		return -1;
-	}
-	return 0;
-}
-
-void fpga_deinit(){
-	if(fpga_fd > 0){
-		close(fpga_fd);
-	}
-}
-
 void fpga_flushall_ctl(unsigned short is_start){
 	unsigned short data = is_start ? 0 : 0xffff;
 	int i = 0;
-	while(i < 4){
+	while(i < 1){
 		fpga_write_mem(i << 1, &data, 1);
 	}
 }
@@ -78,7 +61,6 @@ void fpga_flushall_ctl_oneline(unsigned short is_start, int line){
 	unsigned short data = is_start ? ~mask : 0xffff;
 
 	fpga_write_mem(addr << 1, &data, 1);
-
 }
 
 unsigned short fpga_read_temp(int i){
@@ -95,6 +77,24 @@ unsigned short fpga_read_pressure(int i){
 
 	fpga_read_mem(addr << 1, &data, 1);
 	return data;
+}
 
+int fpga_init(){
+	if(fpga_fd > 0){
+		return 0;
+	}
+	fpga_fd = open(FPGA_DEVICE, O_RDWR);
+	if(fpga_fd < 0){
+		printf("open %s error\n", FPGA_DEVICE);
+		return -1;
+	}
+	fpga_flushall_ctl(0);
+	return 0;
+}
+
+void fpga_deinit(){
+	if(fpga_fd > 0){
+		close(fpga_fd);
+	}
 }
 

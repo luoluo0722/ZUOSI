@@ -17,13 +17,15 @@
 #include "fpga_access.h"
 #include "sqlite_access.h"
 
+#define DOSING_LINE_NUM 16
+
 static int flush_byeqinterval = 0;
 static int flush_bydate = 0;
 static int flush_afterdosing = 0;
 
 #define FLUSH_DEFAULT_YEAR 2019
 #define FLUSH_DEFAULT_MON 4
-#define FLUSH_DEFAULT_DAY 24
+#define FLUSH_DEFAULT_DAY 26
 #define FLUSH_DEFAULT_HOUR 24
 #define FLUSH_DEFAULT_MIN 0
 static int year_byeqinterval = FLUSH_DEFAULT_YEAR;
@@ -51,10 +53,10 @@ static int mininterval_afterdosing = FLUSH_DEFAULT_HOURINTERVAL;
 static int autoflush_lineselection[64] = {1, 1, 1, 1, 1, 1, 1, 1};
 static int manualflush_lineselection[64] = {0};
 
-static int autoflush_min = 10;
+static int autoflush_min = 1;
 static int autoflush_sec = 0;
 
-static int manflush_min = 10;
+static int manflush_min = 1;
 static int manflush_sec = 0;
 
 static int hightempflush_min = 10;
@@ -106,9 +108,27 @@ struct flush_byeqinterval_para{
 	int len;
 };
 
+static void testflush_lineselect(){
+	int i = 0;
+	while(i < 16){
+		if(autoflush_lineselection[i] == 1){
+			fpga_flushall_ctl_oneline(1, i);/* start flush */
+		}
+		i++;
+	}
+	setTimer(autoflush_min * 60 + autoflush_sec);
+	i = 0;
+	while(i < 16){
+		if(autoflush_lineselection[i] == 1){
+			fpga_flushall_ctl_oneline(0, i);/* stop flush */
+		}
+		i++;
+	}
+}
+
 static void autoflush_lineselect(){
 	int i = 0;
-	while(i < 64){
+	while(i < 16){
 		if(autoflush_lineselection[i] == 1){
 			fpga_flushall_ctl_oneline(1, i);/* start flush */
 			setTimer(autoflush_min * 60 + autoflush_sec);
@@ -145,8 +165,6 @@ static void henhouse_flush_onkey_init(){
 
 static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-	//fpga_flushall_ctl(key);
-	//henhouse_flush_operate(autoflush_min, autoflush_sec);
 	if(key == 0x1){
 		if(enable_flush_onekey == 1){
 			return;
@@ -160,13 +178,14 @@ static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset,
 		printf("Start after flush thread\n");
 	}else{
 		if(enable_flush_onekey == 0){
-				return;
+			return;
 		}
 		pthread_mutex_lock(&onekeythd_run_cond_mutex);
 		enable_flush_onekey = 0;
 		pthread_cond_broadcast(&onekeythd_run_cond);
 		pthread_mutex_unlock(&onekeythd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_onekey_thread);
+		fpga_flushall_ctl(0);
 	}
 
 }
@@ -207,7 +226,6 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 		setTimer(hour_byeqinterval * 3600 + minute_byeqinterval * 60);
 	}
 
-
 }
 
 static void henhouse_flush_byeqinterval_init(){
@@ -239,6 +257,7 @@ static void henhouse_page06_press_byeqinterval(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&eqintervalthd_run_cond);
 		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_byeqinterval_thread);
+		fpga_flushall_ctl(0);
 	}
 
 }
@@ -261,7 +280,6 @@ static void henhouse_flush_bydate_thread_func(void *para){
 			&bydatethd_run_cond_mutex);
 	}
 	pthread_mutex_unlock(&bydatethd_run_cond_mutex);
-
 
 	while(1){
 		int i = 0;
@@ -298,7 +316,6 @@ static void henhouse_flush_bydate_init(){
 	pthread_cond_init(&bydatethd_run_cond, NULL);
 }
 
-
 static void henhouse_page06_press_bydate(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	flush_bydate = key;
@@ -320,6 +337,7 @@ static void henhouse_page06_press_bydate(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&bydatethd_run_cond);
 		pthread_mutex_unlock(&bydatethd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_bydate_thread);
+		fpga_flushall_ctl(0);
 	}
 
 }
@@ -476,6 +494,7 @@ void henhouse_page15_press_confirmorcancel(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&manualthd_run_cond);
 		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_manual_thread);
+		fpga_flushall_ctl(0);
 	}
 }
 
@@ -492,6 +511,9 @@ void henhouse_page17_press_confirmorreset(unsigned short key_addr_offset,
 }
 
 static void dosing_henhouse(){
+	fpga_flushall_ctl_oneline(1, DOSING_LINE_NUM);
+	setTimer(100);
+	fpga_flushall_ctl_oneline(0, DOSING_LINE_NUM);
 }
 
 static pthread_t henhouse_dosing_thread;
@@ -512,7 +534,6 @@ static void henhouse_dosing_thread_func(void *para){
 	}
 	pthread_mutex_unlock(&dosingthd_run_cond_mutex);
 
-
 	now = time(NULL);
 	future = get_epoch_for_date(startyear_dosing, startmon_dosing, startday_dosing, starthour_dosing, startmin_dosing, startsec_dosing);
 	printf("thread Start3\n");
@@ -523,6 +544,9 @@ static void henhouse_dosing_thread_func(void *para){
 	}
 
 	dosing_henhouse();
+	if(flush_afterdosing == 1){
+		testflush_lineselect();
+	}
 
 }
 
@@ -543,13 +567,13 @@ void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset,
 		if(enable_dosing == 1){
 			return;
 		}
-		printf("Start flush thread\n");
+		printf("Start dosing thread\n");
 		pthread_create(&henhouse_dosing_thread,NULL,(void*)henhouse_dosing_thread_func, (void *)NULL);
 		pthread_mutex_lock(&dosingthd_run_cond_mutex);
 		enable_dosing = 1;
 		pthread_cond_broadcast(&dosingthd_run_cond);
 		pthread_mutex_unlock(&dosingthd_run_cond_mutex);
-		printf("Start after flush thread\n");
+		printf("Start after dosing thread\n");
 	}else if(key == 0x2){ /* reset */
 		startyear_dosing = data_buf[0] = DOSING_DEFAULT_YEAR;
 		startmon_dosing = data_buf[1] = DOSING_DEFAULT_MON;
@@ -567,6 +591,10 @@ void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&dosingthd_run_cond);
 		pthread_mutex_unlock(&dosingthd_run_cond_mutex);
 		pthread_cancel(henhouse_dosing_thread);
+		fpga_flushall_ctl_oneline(0, DOSING_LINE_NUM);
+		if(flush_afterdosing == 1){
+			fpga_flushall_ctl(0);
+		}
 	}
 }
 void henhouse_page18_press_confirmorreset(unsigned short key_addr_offset, 

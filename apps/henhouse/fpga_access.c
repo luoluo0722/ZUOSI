@@ -34,7 +34,7 @@ int fpga_write_mem(unsigned short addr, unsigned short *data, int len){
 
 	int ret = 0;
 
-	printf("addr = %x, data = %x\n", addr, data);
+	printf("addr = %x, data = %x\n", addr, *data);
 	if(fpga_fd > 0 &&
 		data != NULL &&
 		len <= CONTROL_STATUS_MEM_LEN &&
@@ -52,6 +52,7 @@ void fpga_flushall_ctl(unsigned short is_start){
 	int i = 0;
 	while(i < 1){
 		fpga_write_mem(i << 1, &data, 1);
+		i++;
 	}
 }
 

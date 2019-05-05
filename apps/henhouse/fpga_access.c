@@ -64,16 +64,24 @@ void fpga_flushall_ctl_oneline(unsigned short is_start, int line){
 	fpga_write_mem(addr << 1, &data, 1);
 }
 
-unsigned short fpga_read_temp(int i){
-	unsigned short addr = i + 4;
+unsigned short fpga_read_ad(int i){
+	unsigned short addr = i + 6;
 	unsigned short data;
 
 	fpga_read_mem(addr << 1, &data, 1);
 	return data;
 }
 
-unsigned short fpga_read_pressure(int i){
-	unsigned short addr = i + 6;
+unsigned short fpga_read_reedswitch(int i){
+	unsigned short addr = 0x5;
+	unsigned short data;
+
+	fpga_read_mem(addr << 1, &data, 1);
+	return data;
+}
+
+unsigned short fpga_read_flow(int i){
+	unsigned short addr = i;
 	unsigned short data;
 
 	fpga_read_mem(addr << 1, &data, 1);

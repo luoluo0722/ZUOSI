@@ -18,6 +18,8 @@
 #include "sqlite_access.h"
 
 #define DOSING_LINE_NUM 16
+#define TOP_LEVEL_WARTER_SUPPLY_LINE_NUM 17
+#define TOP_LEVEL_FLUSH_LINE_NUM 18
 
 static int flush_byeqinterval = 0;
 static int flush_bydate = 0;
@@ -108,6 +110,11 @@ struct flush_byeqinterval_para{
 	int len;
 };
 
+static void henhouse_top_level_water_ctl(unsigned short is_flush){
+	fpga_flushall_ctl_oneline(is_flush ? 0 : 1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+	fpga_flushall_ctl_oneline(is_flush, TOP_LEVEL_FLUSH_LINE_NUM);
+}
+
 static void testflush_lineselect(){
 	int i = 0;
 	while(i < 16){
@@ -118,21 +125,25 @@ static void testflush_lineselect(){
 	}
 	setTimer(autoflush_min * 60 + autoflush_sec);
 	i = 0;
+	henhouse_top_level_water_ctl(1);
 	while(i < 16){
 		if(autoflush_lineselection[i] == 1){
 			fpga_flushall_ctl_oneline(0, i);/* stop flush */
 		}
 		i++;
 	}
+	henhouse_top_level_water_ctl(0);
 }
 
 static void autoflush_lineselect(){
 	int i = 0;
 	while(i < 16){
 		if(autoflush_lineselection[i] == 1){
+			henhouse_top_level_water_ctl(1);
 			fpga_flushall_ctl_oneline(1, i);/* start flush */
 			setTimer(autoflush_min * 60 + autoflush_sec);
 			fpga_flushall_ctl_oneline(0, i);/* stop flush */
+			henhouse_top_level_water_ctl(0);
 		}
 		i++;
 	}
@@ -186,6 +197,7 @@ static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset,
 		pthread_mutex_unlock(&onekeythd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_onekey_thread);
 		fpga_flushall_ctl(0);
+		henhouse_top_level_water_ctl(0);
 	}
 
 }
@@ -258,6 +270,7 @@ static void henhouse_page06_press_byeqinterval(unsigned short key_addr_offset,
 		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_byeqinterval_thread);
 		fpga_flushall_ctl(0);
+		henhouse_top_level_water_ctl(0);
 	}
 
 }
@@ -308,7 +321,6 @@ static void henhouse_flush_bydate_thread_func(void *para){
 		
 	}
 
-
 }
 
 static void henhouse_flush_bydate_init(){
@@ -338,6 +350,7 @@ static void henhouse_page06_press_bydate(unsigned short key_addr_offset,
 		pthread_mutex_unlock(&bydatethd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_bydate_thread);
 		fpga_flushall_ctl(0);
+		henhouse_top_level_water_ctl(0);
 	}
 
 }
@@ -438,9 +451,11 @@ static void manualflush_lineselect(){
 	int i = 0;
 	while(i < 64){
 		if(manualflush_lineselection[i] == 1){
+			henhouse_top_level_water_ctl(1);
 			fpga_flushall_ctl_oneline(1, i);/* start flush */
 			setTimer(manflush_min * 60 + manflush_sec);
 			fpga_flushall_ctl_oneline(0, i);/* stop flush */
+			henhouse_top_level_water_ctl(0);
 		}
 		i++;
 	}
@@ -495,6 +510,7 @@ void henhouse_page15_press_confirmorcancel(unsigned short key_addr_offset,
 		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_manual_thread);
 		fpga_flushall_ctl(0);
+		henhouse_top_level_water_ctl(0);
 	}
 }
 
@@ -595,6 +611,7 @@ void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset,
 		if(flush_afterdosing == 1){
 			fpga_flushall_ctl(0);
 		}
+		henhouse_top_level_water_ctl(0);
 	}
 }
 void henhouse_page18_press_confirmorreset(unsigned short key_addr_offset, 

@@ -17,9 +17,9 @@
 #include "fpga_access.h"
 #include "sqlite_access.h"
 
-#define DOSING_LINE_NUM 16
-#define TOP_LEVEL_WARTER_SUPPLY_LINE_NUM 17
-#define TOP_LEVEL_FLUSH_LINE_NUM 18
+#define DOSING_LINE_NUM 10
+#define TOP_LEVEL_WARTER_SUPPLY_LINE_NUM 8
+#define TOP_LEVEL_FLUSH_LINE_NUM 9
 
 static int flush_byeqinterval = 0;
 static int flush_bydate = 0;
@@ -425,6 +425,14 @@ void henhouse_page10_11_press_lineseletion(unsigned short key_addr_offset,
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	int index = key_addr_offset - 0x19;
 
+	if(index <= 3){
+	}
+	if(index > 3 && index <= 7){
+		index += 8;
+	}
+	if(index > 7 && index <= 11){
+		index -= 4;
+	}
 	autoflush_lineselection[index] = key;
 }
 

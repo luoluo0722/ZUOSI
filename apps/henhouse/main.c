@@ -119,22 +119,10 @@ static void henhouse_top_level_water_ctl(unsigned short is_flush){
 }
 
 static void testflush_lineselect(){
-	int i = 0;
-	while(i < 16){
-		if(autoflush_lineselection[i] == 1){
-			fpga_flushall_ctl_oneline(1, i);/* start flush */
-		}
-		i++;
-	}
-	setTimer(autoflush_min * 60 + autoflush_sec);
-	i = 0;
 	henhouse_top_level_water_ctl(1);
-	while(i < 16){
-		if(autoflush_lineselection[i] == 1){
-			fpga_flushall_ctl_oneline(0, i);/* stop flush */
-		}
-		i++;
-	}
+	fpga_flushall_ctl(1);
+	setTimer(autoflush_min * 60 + autoflush_sec);
+	fpga_flushall_ctl(0);
 	henhouse_top_level_water_ctl(0);
 }
 
@@ -540,9 +528,11 @@ void henhouse_page17_press_confirmorreset(unsigned short key_addr_offset,
 }
 
 static void dosing_henhouse(){
+	fpga_flushall_ctl_oneline(0, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 	fpga_flushall_ctl_oneline(1, DOSING_LINE_NUM);
 	setTimer(100);
 	fpga_flushall_ctl_oneline(0, DOSING_LINE_NUM);
+	fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 }
 
 static pthread_t henhouse_dosing_thread;
@@ -576,7 +566,6 @@ static void henhouse_dosing_thread_func(void *para){
 	if(flush_afterdosing == 1){
 		testflush_lineselect();
 	}
-
 }
 
 static void henhouse_dosing_init(){
@@ -1134,6 +1123,7 @@ int main(int argc,char **argv){
 		printf("dgus_init error\n");
 		return ret;
 	}
+	fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 	henhouse_flush_byeqinterval_init();
 	henhouse_flush_bydate_init();
 	henhouse_flush_manual_init();

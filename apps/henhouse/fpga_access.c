@@ -46,12 +46,17 @@ int fpga_write_mem(unsigned short addr, unsigned short *data, int len){
 	}
 	return ret;
 }
-
+static unsigned short reg_data = 0xffff;
 void fpga_flushall_ctl(unsigned short is_start){
-	unsigned short data = is_start ? 0 : 0xffff;
 	int i = 0;
+
+	if(is_start == 1){
+		reg_data &= 0xfff0;
+	}else{
+		reg_data |= 0xf;
+	}
 	while(i < 1){
-		fpga_write_mem(i << 1, &data, 1);
+		fpga_write_mem(i << 1, &reg_data, 1);
 		i++;
 	}
 }
@@ -59,9 +64,13 @@ void fpga_flushall_ctl(unsigned short is_start){
 void fpga_flushall_ctl_oneline(unsigned short is_start, int line){
 	int addr = line/16;
 	unsigned short mask = 1 << (line % 16);
-	unsigned short data = is_start ? ~mask : 0xffff;
 
-	fpga_write_mem(addr << 1, &data, 1);
+	if(is_start == 1){
+		reg_data &= ~mask;
+	}else{
+		reg_data |= mask;
+	}
+	fpga_write_mem(addr << 1, &reg_data, 1);
 }
 
 unsigned short fpga_read_ad(int i){

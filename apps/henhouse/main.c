@@ -111,8 +111,11 @@ struct flush_byeqinterval_para{
 };
 
 static void henhouse_top_level_water_ctl(unsigned short is_flush){
-	fpga_flushall_ctl_oneline(is_flush ? 0 : 1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
-	fpga_flushall_ctl_oneline(is_flush, TOP_LEVEL_FLUSH_LINE_NUM);
+	if(is_flush == 1){
+		fpga_flushall_ctl_oneline(1, TOP_LEVEL_FLUSH_LINE_NUM);
+	}else{
+		fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+	}
 }
 
 static void testflush_lineselect(){
@@ -137,16 +140,16 @@ static void testflush_lineselect(){
 
 static void autoflush_lineselect(){
 	int i = 0;
+	henhouse_top_level_water_ctl(1);
 	while(i < 16){
 		if(autoflush_lineselection[i] == 1){
-			henhouse_top_level_water_ctl(1);
 			fpga_flushall_ctl_oneline(1, i);/* start flush */
 			setTimer(autoflush_min * 60 + autoflush_sec);
 			fpga_flushall_ctl_oneline(0, i);/* stop flush */
-			henhouse_top_level_water_ctl(0);
 		}
 		i++;
 	}
+	henhouse_top_level_water_ctl(0);
 }
 
 static pthread_t henhouse_flush_onekey_thread;
@@ -166,6 +169,7 @@ static void henhouse_flush_onekey_thread_func(void *para){
 	pthread_mutex_unlock(&onekeythd_run_cond_mutex);
 
 	autoflush_lineselect();
+	enable_flush_onekey = 0;
 
 }
 
@@ -423,7 +427,7 @@ void henhouse_page09_press_confirmorcancel(unsigned short key_addr_offset,
 
 void henhouse_page10_11_press_lineseletion(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
-	int index = key_addr_offset - 0x19;
+	int index = key_addr_offset - 0x9;
 
 	if(index <= 3){
 	}
@@ -433,6 +437,7 @@ void henhouse_page10_11_press_lineseletion(unsigned short key_addr_offset,
 	if(index > 7 && index <= 11){
 		index -= 4;
 	}
+	printf("index = %d\n", index);
 	autoflush_lineselection[index] = key;
 }
 

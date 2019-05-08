@@ -25,6 +25,7 @@
 #define DATA_BUF_LEN 256
 
 #define REG_ADDRES_VERSION 0x0
+#define REG_ADDRES_CHANGE_PAGE 0x3
 
 #define VAR_ADDRES_REPORT_BASE       VAR_ADDRES_PAGE05_SETZERO
 #define VAR_ADDRES_PAGE05_SETZERO                       0x0010
@@ -109,6 +110,8 @@ static unsigned short current_page = -1;
 static struct dgus_callback internal_callback;
 
 unsigned short date_eqinterval[5] = {0};
+
+static pthread_mutex_t dgus_access_mutex;
 
 static int dgus_access_address(unsigned short addr, int is_write,
 		unsigned short *data, unsigned short len);
@@ -992,6 +995,7 @@ static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
 	int cmd_code_len;
 	int i;
 
+	pthread_mutex_lock(&dgus_access_mutex);
 	if(reg > 0xff){
 		return -1;
 	}
@@ -1038,6 +1042,7 @@ static int dgus_access_reg(unsigned char reg, int is_write, unsigned char *data,
 		memcpy(data, buf_byte + cmd_len, len);
 	}
 	//free(buf);
+	pthread_mutex_unlock(&dgus_access_mutex);
 	return 0;
 }
 
@@ -1095,6 +1100,7 @@ static int dgus_access_address(unsigned short addr, int is_write,
 	int i;
 	int cmd_code_len;
 
+	pthread_mutex_lock(&dgus_access_mutex);
 	if(addr > 0x6FFF){
 		return -1;
 	}
@@ -1165,6 +1171,7 @@ static int dgus_access_address(unsigned short addr, int is_write,
 		}
 	}
 	free(buf);
+	pthread_mutex_unlock(&dgus_access_mutex);
 	return 0;
 
 }
@@ -1247,6 +1254,12 @@ static int dgus_set_system_time()
     return 0;  
 }  
 
+void dgus_switch_page(int page_num){
+
+	unsigned char data[] = {0, page_num};
+	dgus_access_reg(REG_ADDRES_CHANGE_PAGE, 1, data, sizeof(data));
+
+}
 
 int dgus_init(char *device_path, struct dgus_callback *main_callback){
 
@@ -1255,6 +1268,7 @@ int dgus_init(char *device_path, struct dgus_callback *main_callback){
 	if(dgus_fd > 0){
 		return 0;
 	}
+	pthread_mutex_init(&dgus_access_mutex, NULL);
 	dgus_fd = open(device_path, O_RDWR);
 	if (dgus_fd < 0){
 		printf("open device %s faild\n", TTY_DEVICE);
@@ -1272,7 +1286,7 @@ int dgus_init(char *device_path, struct dgus_callback *main_callback){
 	dgus_set_system_time();
 
 	p_main_callback = main_callback;
-	pthread_create(&dgus_thread,NULL,(void*)dgus_waiting_thread_func,NULL);
+	pthread_create(&dgus_thread,NULL,(void*)dgus_waiting_thread_func, NULL);
 	return 0;
 }
 

@@ -20,6 +20,8 @@
 #define DOSING_LINE_NUM 10
 #define TOP_LEVEL_WARTER_SUPPLY_LINE_NUM 8
 #define TOP_LEVEL_FLUSH_LINE_NUM 9
+#define HENHOUSE_ALERT_SLEEPING_SEC 20
+#define HENHOUSE_ALERT_PAGE 51
 
 static int flush_byeqinterval = 0;
 static int flush_bydate = 0;
@@ -1101,6 +1103,31 @@ static struct dgus_page_callback main_page_callback_array[] = {
 	{0xffff, NULL},
 };
 
+static pthread_t henhouse_alert_thread;
+static pthread_mutex_t alert_run_cond_mutex;
+static pthread_cond_t alert_run_cond;
+
+static void henhouse_alert_thread_func(void *para){
+	unsigned short status;
+
+	while(1){
+		status = fpga_read_reedswitch();
+		if(status == 0){
+			dgus_switch_page(HENHOUSE_ALERT_PAGE);
+		}
+		setTimer(HENHOUSE_ALERT_SLEEPING_SEC);
+
+	}
+
+}
+
+static void henhouse_alert_init(){
+	//pthread_mutex_init(&alert_run_cond_mutex, NULL);
+	//pthread_cond_init(&alert_run_cond, NULL);
+	pthread_create(&henhouse_alert_thread,NULL,(void*)henhouse_alert_thread_func, (void *)NULL);
+}
+
+
 static struct dgus_callback main_callback = {
 	.keypress_callback = main_keypress_callback_array,
 	.page_callback = main_page_callback_array,
@@ -1129,6 +1156,7 @@ int main(int argc,char **argv){
 	henhouse_flush_manual_init();
 	henhouse_flush_onkey_init();
 	henhouse_dosing_init();
+	henhouse_alert_init();
 
 	while(1){
 			setTimer(100);

@@ -81,7 +81,7 @@ unsigned short fpga_read_ad(int i){
 	return data;
 }
 
-unsigned short fpga_read_reedswitch(int i){
+unsigned short fpga_read_reedswitch(){
 	unsigned short addr = 0x5;
 	unsigned short data;
 

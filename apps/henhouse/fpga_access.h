@@ -5,3 +5,4 @@ int fpga_init();
 void fpga_deinit();
 void fpga_flushall_ctl(unsigned short is_start);
 void fpga_flushall_ctl_oneline(unsigned short is_start, int line);
+unsigned short fpga_read_reedswitch();

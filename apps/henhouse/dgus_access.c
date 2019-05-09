@@ -640,12 +640,17 @@ static void dgus_page05_display(unsigned short page_num,
 
 	if(pagechange_callback != NULL){
 		pagechange_callback(page_num, callback_buf_word, sizeof(callback_buf_word), &ret_len);
-		dgus_access_address(0x1000, 1, callback_buf_word, ret_len - 1);
-		dgus_access_address(0x1050, 1, &callback_buf_word[ret_len - 1], 1);
+		//dgus_access_address(0x1000, 1, callback_buf_word, 2); /* water */
+		dgus_access_address(0x1002, 1, callback_buf_word + 2, 1); /* pressure */
+		dgus_access_address(0x1003, 1, callback_buf_word + 3, 1); /* temp */
+		//dgus_access_address(0x1004, 1, callback_buf_word + 4, 2); /* next time */
+		//dgus_access_address(0x1006, 1, callback_buf_word + 6, 2); /* col and row */
+
+		dgus_access_address(0x1050, 1, callback_buf_word + 8, 1); /* animation */
+		dgus_access_address(0x1100, 1, callback_buf_word + 9, 1); /* progress */
 	}
 
 }
-
 
 static void dgus_page07_display(unsigned short page_num, 
 	unsigned short *data_buf, int buf_len, int *len){
@@ -1306,6 +1311,18 @@ unsigned short dgus_get_current_page_num(){
 	return current_page;
 }
 
+void dgus_update_water_yeild(unsigned int water_yeild){
+	unsigned short buf[] = {water_yeild >> 16, water_yeild & 0xffff};
+	dgus_access_address(0x1000, 1, buf, 2);
+}
 
+void dgus_update_flushing_col_row(unsigned short col, unsigned short row){
+	unsigned short buf[] = {col, row};
+	dgus_access_address(0x1006, 1, buf, 2);
+}
 
+void dgus_update_waittime_next_flush(unsigned short hour, unsigned short min){
+	unsigned short buf[] = {hour, min};
+	dgus_access_address(0x1004, 1, buf, 2);
+}
 

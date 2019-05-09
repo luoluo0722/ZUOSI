@@ -20,7 +20,7 @@
 #define DOSING_LINE_NUM 10
 #define TOP_LEVEL_WARTER_SUPPLY_LINE_NUM 8
 #define TOP_LEVEL_FLUSH_LINE_NUM 9
-#define HENHOUSE_ALERT_SLEEPING_SEC 20
+#define HENHOUSE_ALERT_SLEEPING_SEC 5
 #define HENHOUSE_ALERT_PAGE 51
 
 static int flush_byeqinterval = 0;
@@ -82,6 +82,11 @@ static int startsec_dosing = DOSING_DEFAULT_SEC;
 static int dosing_min = 20;
 static int dosing_sec = 0;
 
+static unsigned short currnt_flushing_col = 0;
+static unsigned short currnt_flushing_row = 0;
+
+static unsigned int wait_sec_for_next_flush = 0;
+
 static void setTimer(int seconds){
 	struct timeval temp;
 
@@ -134,6 +139,14 @@ static void autoflush_lineselect(){
 	while(i < 16){
 		if(autoflush_lineselection[i] == 1){
 			fpga_flushall_ctl_oneline(1, i);/* start flush */
+			if(i < 4){
+				currnt_flushing_col = 1;
+				currnt_flushing_row = i + 1;
+			}else if(i >=4 && i < 8){
+				currnt_flushing_col = 2;
+				currnt_flushing_row = i - 3;
+			}
+			dgus_update_flushing_col_row(currnt_flushing_col, currnt_flushing_row);
 			setTimer(autoflush_min * 60 + autoflush_sec);
 			fpga_flushall_ctl_oneline(0, i);/* stop flush */
 		}
@@ -219,17 +232,19 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 	future = get_epoch_for_date(year_byeqinterval, month_byeqinterval, day_byeqinterval, 0, 0, 0);
 	printf("thread Start3\n");
 	printf("Sleep %d\n", future - now);
-	wait_sec = future - now;
+	wait_sec_for_next_flush = wait_sec = future - now;
 	if(wait_sec > 0){
 		setTimer(wait_sec); /* wait for the date */
 	}else{
-		setTimer(hour_byeqinterval * 3600 + minute_byeqinterval * 60);
+		wait_sec_for_next_flush = wait_sec = hour_byeqinterval * 3600 + minute_byeqinterval * 60;
+		setTimer(wait_sec);
 	}
 
 	while(1){
 		autoflush_lineselect();
 		/* wait for the interval */
-		setTimer(hour_byeqinterval * 3600 + minute_byeqinterval * 60);
+		wait_sec_for_next_flush = wait_sec = hour_byeqinterval * 3600 + minute_byeqinterval * 60;
+		setTimer(wait_sec);
 	}
 
 }
@@ -296,6 +311,7 @@ static void henhouse_flush_bydate_thread_func(void *para){
 				future = get_epoch_for_date(year, mon, i + 1, 0, 0, 0);
 				wait_sec = future - now;
 				if(wait_sec >= 0){
+					wait_sec_for_next_flush = wait_sec;
 					setTimer(wait_sec);
 				}else{
 					continue;
@@ -561,6 +577,7 @@ static void henhouse_dosing_thread_func(void *para){
 	printf("Sleep %d\n", future - now);
 	wait_sec = future - now;
 	if(wait_sec > 0){
+		wait_sec_for_next_flush = wait_sec - 100 ;
 		setTimer(wait_sec); /* wait for the date */
 	}
 
@@ -913,15 +930,16 @@ static struct dgus_keypress_callback main_keypress_callback_array[] = {
 
 static void henhouse_page05_display(unsigned short page_num, 
 	unsigned short *data_buf, int buf_len, int *len){
-	data_buf[0] = 0x1816;
-	data_buf[1] = 0x26;
-	data_buf[2] = 0x2100;
-	data_buf[3] = 0x0200;
-	data_buf[4] = 12;
-	data_buf[5] = 59;
-	data_buf[6] = 6;
-	data_buf[7] = 6;
-	data_buf[8] = 2;
+	data_buf[0] = 0x1816; /* water */
+	data_buf[1] = 0x26; /* water */
+	data_buf[2] = 0x2100; /* pressure */
+	data_buf[3] = 0x0200; /* temp */
+	data_buf[4] = 12; /* next time */
+	data_buf[5] = 59; /* next time */
+	data_buf[6] = 6; /* col */
+	data_buf[7] = 6; /* row */
+	data_buf[8] = 2; /* animation */
+	data_buf[9] = 2; /* progress */
 	*len = 9;
 }
 
@@ -1109,7 +1127,9 @@ static pthread_cond_t alert_run_cond;
 
 static void henhouse_alert_thread_func(void *para){
 	unsigned short status;
-	static unsigned short current_page;
+	static unsigned short current_page = 0;
+	static unsigned int water_yeild = 0;
+	int i = 0;
 
 	while(1){
 		status = fpga_read_reedswitch();
@@ -1117,8 +1137,21 @@ static void henhouse_alert_thread_func(void *para){
 			current_page = dgus_get_current_page_num();
 			dgus_switch_page(HENHOUSE_ALERT_PAGE);
 		}else{
-			dgus_switch_page(current_page); /* restor page */
+			if(current_page != 0){
+				dgus_switch_page(current_page); /* restore page */
+			}
+			current_page = 0;
 		}
+		wait_sec_for_next_flush -= 5;
+		if(i * HENHOUSE_ALERT_SLEEPING_SEC == 60){
+			int pulse = fpga_read_flow(0);
+			printf("%s:%d pulse = %d\n", __func__, __LINE__, pulse);
+			water_yeild += (6 * pulse - 8) * pulse;
+			dgus_update_water_yeild(water_yeild);
+			dgus_update_waittime_next_flush(wait_sec_for_next_flush / 3600, (wait_sec_for_next_flush % 3600)/60);
+			i = 0;
+		}
+		i++;
 		setTimer(HENHOUSE_ALERT_SLEEPING_SEC);
 
 	}

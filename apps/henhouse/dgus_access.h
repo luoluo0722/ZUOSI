@@ -24,3 +24,6 @@ void dgus_deinit();
 void dgus_get_now_date(unsigned char *data, int len);
 void dgus_switch_page(int page_num);
 unsigned short dgus_get_current_page_num();
+void dgus_update_water_yeild(unsigned int water_yeild);
+void dgus_update_flushing_col_row(unsigned short col, unsigned short row);
+void dgus_update_waittime_next_flush(unsigned short hour, unsigned short min);

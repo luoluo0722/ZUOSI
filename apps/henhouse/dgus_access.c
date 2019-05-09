@@ -106,7 +106,7 @@ static pthread_t dgus_thread;
 static int speed_arr[] = {  B115200, B57600, B38400, B19200, B9600, B4800,
 		    B2400, B1200};
 static int name_arr[] = {115200, 57600, 38400,  19200,  9600,  4800,  2400, 1200};
-static unsigned short current_page = -1;
+static unsigned short current_page = 0;
 static struct dgus_callback internal_callback;
 
 unsigned short date_eqinterval[5] = {0};
@@ -1299,6 +1299,11 @@ void dgus_deinit(){
 void dgus_get_now_date(unsigned char *data, int len){
 
 	dgus_access_reg(0x20, 0, data, len);
+}
+
+unsigned short dgus_get_current_page_num(){
+
+	return current_page;
 }
 
 

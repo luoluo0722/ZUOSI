@@ -1109,11 +1109,15 @@ static pthread_cond_t alert_run_cond;
 
 static void henhouse_alert_thread_func(void *para){
 	unsigned short status;
+	static unsigned short current_page;
 
 	while(1){
 		status = fpga_read_reedswitch();
 		if(status == 0){
+			current_page = dgus_get_current_page_num();
 			dgus_switch_page(HENHOUSE_ALERT_PAGE);
+		}else{
+			dgus_switch_page(current_page); /* restor page */
 		}
 		setTimer(HENHOUSE_ALERT_SLEEPING_SEC);
 

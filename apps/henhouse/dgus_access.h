@@ -23,3 +23,4 @@ int dgus_init(char *device_path, struct dgus_callback *main_callback);
 void dgus_deinit();
 void dgus_get_now_date(unsigned char *data, int len);
 void dgus_switch_page(int page_num);
+unsigned short dgus_get_current_page_num();

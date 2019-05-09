@@ -85,7 +85,7 @@ static int dosing_sec = 0;
 static unsigned short currnt_flushing_col = 0;
 static unsigned short currnt_flushing_row = 0;
 
-static unsigned int wait_sec_for_next_flush = 0;
+static int wait_sec_for_next_flush = 0;
 
 static void setTimer(int seconds){
 	struct timeval temp;
@@ -932,8 +932,8 @@ static void henhouse_page05_display(unsigned short page_num,
 	unsigned short *data_buf, int buf_len, int *len){
 	data_buf[0] = 0x1816; /* water */
 	data_buf[1] = 0x26; /* water */
-	data_buf[2] = 0x0015; /* pressure */
-	data_buf[3] = 0x00c8; /* temp */
+	data_buf[2] = 0x0012; /* pressure */
+	data_buf[3] = 0x00A0; /* temp */
 	data_buf[4] = 12; /* next time */
 	data_buf[5] = 59; /* next time */
 	data_buf[6] = 6; /* col */
@@ -1131,8 +1131,18 @@ static void henhouse_alert_thread_func(void *para){
 	static unsigned int water_yeild = 0;
 	int i = 0;
 
+	int pulse = fpga_read_flow(0);
+	printf("%s:%d pulse = %d\n", __func__, __LINE__, pulse);
+	water_yeild += (6 * pulse - 8) * pulse;
+	dgus_update_water_yeild(water_yeild);
+	if(wait_sec_for_next_flush < 0 ){
+		wait_sec_for_next_flush = 0;
+	}
+	dgus_update_waittime_next_flush(wait_sec_for_next_flush / 3600, (wait_sec_for_next_flush % 3600)/60);
+
 	while(1){
 		status = fpga_read_reedswitch();
+		//printf("%s:%d status = %x\n", __func__, __LINE__, status);
 		if(status == 0){
 			current_page = dgus_get_current_page_num();
 			dgus_switch_page(HENHOUSE_ALERT_PAGE);
@@ -1144,10 +1154,13 @@ static void henhouse_alert_thread_func(void *para){
 		}
 		wait_sec_for_next_flush -= 5;
 		if(i * HENHOUSE_ALERT_SLEEPING_SEC == 60){
-			int pulse = fpga_read_flow(0);
+			pulse = fpga_read_flow(0);
 			printf("%s:%d pulse = %d\n", __func__, __LINE__, pulse);
 			water_yeild += (6 * pulse - 8) * pulse;
 			dgus_update_water_yeild(water_yeild);
+			if(wait_sec_for_next_flush < 0 ){
+				wait_sec_for_next_flush = 0;
+			}
 			dgus_update_waittime_next_flush(wait_sec_for_next_flush / 3600, (wait_sec_for_next_flush % 3600)/60);
 			i = 0;
 		}

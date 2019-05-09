@@ -1063,35 +1063,37 @@ static unsigned char _dgus_read_version(){
 static int _dgus_wait_to_read_report(unsigned short *var_addr){
 	int ret = 0;
 	int i = 0;
+	unsigned char wait_buf_byte[DATA_BUF_LEN];
+
 	if(dgus_fd > 0){
-		memset(buf_byte, 0, sizeof(buf_byte));
-		ret = read(dgus_fd, buf_byte, sizeof(buf_byte));
+		memset(wait_buf_byte, 0, sizeof(wait_buf_byte));
+		ret = read(dgus_fd, wait_buf_byte, sizeof(wait_buf_byte));
 	}
 	if(ret <= 0){
 		return ret;
 	}
 
 	while(i < ret){
-		printf("read %d = 0x%x\n", i, buf_byte[i]);
+		printf("read %d = 0x%x\n", i, wait_buf_byte[i]);
 		i++;
 	}
 	ret = 0;
-	if((buf_byte[0] == HEADER_BYTE1) &&
-		(buf_byte[1] == HEADER_BYTE2) &&
-		(buf_byte[3] == 0x83)){/* report the event */
-		if(((buf_byte[2] - 4) / 2) == buf_byte[6]){
-			int i = 0, data_len_byte = buf_byte[6] * 2;
-			unsigned char *p = buf_byte;
+	if((wait_buf_byte[0] == HEADER_BYTE1) &&
+		(wait_buf_byte[1] == HEADER_BYTE2) &&
+		(wait_buf_byte[3] == 0x83)){/* report the event */
+		if(((wait_buf_byte[2] - 4) / 2) == wait_buf_byte[6]){
+			int i = 0, data_len_byte = wait_buf_byte[6] * 2;
+			unsigned char *p = wait_buf_byte;
 
-			*var_addr = buf_byte[4] << 8 | buf_byte[5];
+			*var_addr = wait_buf_byte[4] << 8 | wait_buf_byte[5];
 			memset(buf_word, 0, sizeof(buf_word));
 
-			p = buf_byte + 7;
+			p = wait_buf_byte + 7;
 			while(i < data_len_byte){
 				buf_word[i/2] = *(p + i) << 8 | *(p + i + 1);
 				i += 2;
 			}
-			ret = buf_byte[6];
+			ret = wait_buf_byte[6];
 		}
 	}
 	return ret;

@@ -16,14 +16,16 @@ int fpga_read_mem(unsigned short addr, unsigned short *data, int len){
 
 	int ret = 0;
 
+	//printf("%s:%d addr = %x, status = %x\n", __func__, __LINE__, addr, buf[1]);
 	if(fpga_fd > 0 &&
 		data != NULL &&
 		len <= CONTROL_STATUS_MEM_LEN &&
 		len > 0){
 		memset(buf, 0, sizeof(buf));
-		buf[0] == addr;
+		buf[0] = addr;
 		ret = read(fpga_fd, buf, len * 2 + 2);
 		if(ret > 0){
+			//printf("%s:%d addr = %x, status = %x\n", __func__, __LINE__, buf[0], buf[1]);
 			memcpy(data, buf + 1, len * 2);				
 		}
 	}

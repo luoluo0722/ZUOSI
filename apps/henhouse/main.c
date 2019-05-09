@@ -932,8 +932,8 @@ static void henhouse_page05_display(unsigned short page_num,
 	unsigned short *data_buf, int buf_len, int *len){
 	data_buf[0] = 0x1816; /* water */
 	data_buf[1] = 0x26; /* water */
-	data_buf[2] = 0x2100; /* pressure */
-	data_buf[3] = 0x0200; /* temp */
+	data_buf[2] = 0x0015; /* pressure */
+	data_buf[3] = 0x00c8; /* temp */
 	data_buf[4] = 12; /* next time */
 	data_buf[5] = 59; /* next time */
 	data_buf[6] = 6; /* col */

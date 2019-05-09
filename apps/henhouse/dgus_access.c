@@ -1312,7 +1312,7 @@ unsigned short dgus_get_current_page_num(){
 }
 
 void dgus_update_water_yeild(unsigned int water_yeild){
-	unsigned short buf[] = {water_yeild >> 16, water_yeild & 0xffff};
+	unsigned short buf[] = {(water_yeild) / 10 >> 16, (water_yeild / 10) & 0xffff};
 	dgus_access_address(0x1000, 1, buf, 2);
 }
 

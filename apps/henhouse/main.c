@@ -946,21 +946,21 @@ static void henhouse_page05_display(unsigned short page_num,
 
 static void henhouse_page07_display(unsigned short page_num, 
 	unsigned short *data_buf, int buf_len, int *len){
-	data_buf[0] = year_byeqinterval = FLUSH_DEFAULT_YEAR;
-	data_buf[1] = month_byeqinterval = FLUSH_DEFAULT_MON;
-	data_buf[2] = day_byeqinterval = FLUSH_DEFAULT_DAY;
-	data_buf[3] = hour_byeqinterval = FLUSH_DEFAULT_HOUR;
-	data_buf[4] = minute_byeqinterval = FLUSH_DEFAULT_MIN;
+	data_buf[0] = year_byeqinterval;
+	data_buf[1] = month_byeqinterval;
+	data_buf[2] = day_byeqinterval;
+	data_buf[3] = hour_byeqinterval;
+	data_buf[4] = minute_byeqinterval;
 	*len = 5;
 }
 
 
 static void henhouse_page08_display(unsigned short page_num, 
 	unsigned short *data_buf, int buf_len, int *len){
-	data_buf[0] = startyear_flushbydate = FLUSH_DEFAULT_STARTYEAR;
-	data_buf[1] = startmon_flushbydate = FLUSH_DEFAULT_STARTMON;
-	data_buf[2] = stopyear_flushbydate = FLUSH_DEFAULT_STOPYEAR;
-	data_buf[3] = stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
+	data_buf[0] = startyear_flushbydate;
+	data_buf[1] = startmon_flushbydate;
+	data_buf[2] = stopyear_flushbydate;
+	data_buf[3] = stopmon_flushbydate;
 	*len = 4;
 }
 

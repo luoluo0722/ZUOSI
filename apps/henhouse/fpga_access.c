@@ -53,9 +53,9 @@ void fpga_flushall_ctl(unsigned short is_start){
 	int i = 0;
 
 	if(is_start == 1){
-		reg_data &= 0xfff0;
+		reg_data &= 0xff00;
 	}else{
-		reg_data |= 0xf;
+		reg_data |= 0xff;
 	}
 	while(i < 1){
 		fpga_write_mem(i << 1, &reg_data, 1);
@@ -64,7 +64,7 @@ void fpga_flushall_ctl(unsigned short is_start){
 }
 
 void fpga_flushall_ctl_oneline(unsigned short is_start, int line){
-	int addr = line/16;
+	int addr = line / 16;
 	unsigned short mask = 1 << (line % 16);
 
 	if(is_start == 1){

@@ -54,7 +54,7 @@ static int stopmon_flushbydate = FLUSH_DEFAULT_STOPMON;
 static int hourinterval_afterdosing = FLUSH_DEFAULT_HOURINTERVAL;
 static int mininterval_afterdosing = FLUSH_DEFAULT_HOURINTERVAL;
 
-static int autoflush_lineselection[64] = {1, 1, 1, 1, 1, 1, 1, 1};
+static int autoflush_lineselection[64] = {0};
 static int manualflush_lineselection[64] = {0};
 
 static int autoflush_min = 1;
@@ -120,8 +120,10 @@ struct flush_byeqinterval_para{
 static void henhouse_top_level_water_ctl(unsigned short is_flush){
 	if(is_flush == 1){
 		fpga_flushall_ctl_oneline(1, TOP_LEVEL_FLUSH_LINE_NUM);
+		fpga_flushall_ctl_oneline(0, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 	}else{
 		fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+		fpga_flushall_ctl_oneline(0, TOP_LEVEL_FLUSH_LINE_NUM);
 	}
 }
 
@@ -135,10 +137,15 @@ static void testflush_lineselect(){
 
 static void autoflush_lineselect(){
 	int i = 0;
+	int j;
 	henhouse_top_level_water_ctl(1);
 	while(i < 16){
 		if(autoflush_lineselection[i] == 1){
-			fpga_flushall_ctl_oneline(1, i);/* start flush */
+			j = i;
+			if(i == 4) j = 6;
+			if(i == 5) j = 4;
+			if(i == 6) j = 5;
+			fpga_flushall_ctl_oneline(1, j);/* start flush */
 			if(i < 4){
 				currnt_flushing_col = 1;
 				currnt_flushing_row = i + 1;
@@ -148,7 +155,7 @@ static void autoflush_lineselect(){
 			}
 			dgus_update_flushing_col_row(currnt_flushing_col, currnt_flushing_row);
 			setTimer(autoflush_min * 60 + autoflush_sec);
-			fpga_flushall_ctl_oneline(0, i);/* stop flush */
+			fpga_flushall_ctl_oneline(0, j);/* stop flush */
 		}
 		i++;
 	}
@@ -434,6 +441,7 @@ void henhouse_page09_press_confirmorcancel(unsigned short key_addr_offset,
 void henhouse_page10_11_press_lineseletion(unsigned short key_addr_offset, 
 	unsigned short key, unsigned short *data_buf, int buf_len, int *len){
 	int index = key_addr_offset - 0x9;
+	int i = 0;
 
 	if(index <= 3){
 	}
@@ -443,8 +451,14 @@ void henhouse_page10_11_press_lineseletion(unsigned short key_addr_offset,
 	if(index > 7 && index <= 11){
 		index -= 4;
 	}
-	printf("index = %d\n", index);
+	printf("index = %d, key = %d\n", index, key);
+	
 	autoflush_lineselection[index] = key;
+	while(i < 8){
+		printf("autoflush_lineselection %d = %d ", i, autoflush_lineselection[i] );
+		i++;
+	}
+	printf("\n");
 }
 
 void henhouse_page12_press_confirmorreset(unsigned short key_addr_offset, 
@@ -547,8 +561,9 @@ void henhouse_page17_press_confirmorreset(unsigned short key_addr_offset,
 
 static void dosing_henhouse(){
 	fpga_flushall_ctl_oneline(0, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+	fpga_flushall_ctl_oneline(0, TOP_LEVEL_FLUSH_LINE_NUM);
 	fpga_flushall_ctl_oneline(1, DOSING_LINE_NUM);
-	setTimer(100);
+	setTimer(1000);
 	fpga_flushall_ctl_oneline(0, DOSING_LINE_NUM);
 	fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 }
@@ -582,6 +597,7 @@ static void henhouse_dosing_thread_func(void *para){
 	}
 
 	dosing_henhouse();
+
 	if(flush_afterdosing == 1){
 		testflush_lineselect();
 	}
@@ -1128,7 +1144,8 @@ static pthread_cond_t alert_run_cond;
 static void henhouse_alert_thread_func(void *para){
 	unsigned short status;
 	static unsigned short current_page = 0;
-	static unsigned int water_yeild = 0;
+	static unsigned int water_yeild = 3;
+	static unsigned int in_alert = 0;
 	int i = 0;
 
 	int pulse = fpga_read_flow(0);
@@ -1146,9 +1163,11 @@ static void henhouse_alert_thread_func(void *para){
 		if(status == 0){
 			current_page = dgus_get_current_page_num();
 			dgus_switch_page(HENHOUSE_ALERT_PAGE);
+			in_alert = 1;
 		}else{
-			if(current_page != 0){
-				dgus_switch_page(current_page); /* restore page */
+			if(in_alert == 1){
+				dgus_switch_page(5); /* restore page */
+				in_alert = 0;
 			}
 			current_page = 0;
 		}
@@ -1156,7 +1175,7 @@ static void henhouse_alert_thread_func(void *para){
 		if(i * HENHOUSE_ALERT_SLEEPING_SEC == 60){
 			pulse = fpga_read_flow(0);
 			printf("%s:%d pulse = %d\n", __func__, __LINE__, pulse);
-			water_yeild += (6 * pulse - 8) * pulse;
+			//water_yeild += 1;
 			dgus_update_water_yeild(water_yeild);
 			if(wait_sec_for_next_flush < 0 ){
 				wait_sec_for_next_flush = 0;

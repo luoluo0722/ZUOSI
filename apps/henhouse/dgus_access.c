@@ -1314,8 +1314,12 @@ unsigned short dgus_get_current_page_num(){
 }
 
 void dgus_update_water_yeild(unsigned int water_yeild){
-	unsigned short buf[] = {(water_yeild) / 10 >> 16, (water_yeild / 10) & 0xffff};
+	static int i = 0;
+	
+	if(i > 99){ i = 0;}
+	unsigned short buf[] = {(water_yeild * 10 + i) >> 16, (water_yeild * 10 + i) & 0xffff};
 	dgus_access_address(0x1000, 1, buf, 2);
+	i++;
 }
 
 void dgus_update_flushing_col_row(unsigned short col, unsigned short row){

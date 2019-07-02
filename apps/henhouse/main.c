@@ -119,47 +119,41 @@ struct flush_byeqinterval_para{
 
 static void henhouse_top_level_water_ctl(unsigned short is_flush){
 	if(is_flush == 1){
-		fpga_flushall_ctl_oneline(1, TOP_LEVEL_FLUSH_LINE_NUM);
-		fpga_flushall_ctl_oneline(0, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+		fpga_flushctl_oneline(1, TOP_LEVEL_FLUSH_LINE_NUM);
+		fpga_flushctl_oneline(0, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 	}else{
-		fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
-		fpga_flushall_ctl_oneline(0, TOP_LEVEL_FLUSH_LINE_NUM);
+		fpga_flushctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+		fpga_flushctl_oneline(0, TOP_LEVEL_FLUSH_LINE_NUM);
 	}
 }
 
 static void testflush_lineselect(){
 	henhouse_top_level_water_ctl(1);
-	fpga_flushall_ctl(1);
+	fpga_flushctl_all(1);
 	setTimer(autoflush_min * 60 + autoflush_sec);
-	fpga_flushall_ctl(0);
+	fpga_flushctl_all(0);
 	henhouse_top_level_water_ctl(0);
 }
 
-static void autoflush_lineselect(){
+static void autoflush_lineselect(int who){
 	int i = 0;
-	int j;
+	static int who_flushing = -1;
+
+	who_flushing = who;
 	henhouse_top_level_water_ctl(1);
-	while(i < 16){
+	while(i < 64){
 		if(autoflush_lineselection[i] == 1){
-			j = i;
-			if(i == 4) j = 6;
-			if(i == 5) j = 4;
-			if(i == 6) j = 5;
-			fpga_flushall_ctl_oneline(1, j);/* start flush */
-			if(i < 4){
-				currnt_flushing_col = 1;
-				currnt_flushing_row = i + 1;
-			}else if(i >=4 && i < 8){
-				currnt_flushing_col = 2;
-				currnt_flushing_row = i - 3;
-			}
+			fpga_flushctl_oneline(1, i);/* start flush */
+			currnt_flushing_col = i / 8;
+			currnt_flushing_row = i % 8;
 			dgus_update_flushing_col_row(currnt_flushing_col, currnt_flushing_row);
 			setTimer(autoflush_min * 60 + autoflush_sec);
-			fpga_flushall_ctl_oneline(0, j);/* stop flush */
+			fpga_flushctl_oneline(0, i);/* stop flush */
 		}
 		i++;
 	}
 	henhouse_top_level_water_ctl(0);
+	who_flushing = -1;
 }
 
 static pthread_t henhouse_flush_onekey_thread;
@@ -178,7 +172,7 @@ static void henhouse_flush_onekey_thread_func(void *para){
 	}
 	pthread_mutex_unlock(&onekeythd_run_cond_mutex);
 
-	autoflush_lineselect();
+	autoflush_lineselect(2); /* 2 for one key flush */
 	enable_flush_onekey = 0;
 
 }
@@ -210,7 +204,7 @@ static void henhouse_page06_press_onekeyflushctl(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&onekeythd_run_cond);
 		pthread_mutex_unlock(&onekeythd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_onekey_thread);
-		fpga_flushall_ctl(0);
+		fpga_flushctl_all(0);
 		henhouse_top_level_water_ctl(0);
 	}
 
@@ -248,7 +242,7 @@ static void henhouse_flush_byeqinterval_thread_func(void *para){
 	}
 
 	while(1){
-		autoflush_lineselect();
+		autoflush_lineselect(1); /* 1 for by equal interval */
 		/* wait for the interval */
 		wait_sec_for_next_flush = wait_sec = hour_byeqinterval * 3600 + minute_byeqinterval * 60;
 		setTimer(wait_sec);
@@ -285,7 +279,7 @@ static void henhouse_page06_press_byeqinterval(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&eqintervalthd_run_cond);
 		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_byeqinterval_thread);
-		fpga_flushall_ctl(0);
+		fpga_flushctl_all(0);
 		henhouse_top_level_water_ctl(0);
 	}
 
@@ -323,7 +317,7 @@ static void henhouse_flush_bydate_thread_func(void *para){
 				}else{
 					continue;
 				}
-				autoflush_lineselect();
+				autoflush_lineselect(0); /* 0 for by date */
 			}
 			i++;
 		}
@@ -366,7 +360,7 @@ static void henhouse_page06_press_bydate(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&bydatethd_run_cond);
 		pthread_mutex_unlock(&bydatethd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_bydate_thread);
-		fpga_flushall_ctl(0);
+		fpga_flushctl_all(0);
 		henhouse_top_level_water_ctl(0);
 	}
 
@@ -443,22 +437,11 @@ void henhouse_page10_11_press_lineseletion(unsigned short key_addr_offset,
 	int index = key_addr_offset - 0x9;
 	int i = 0;
 
-	if(index <= 3){
-	}
-	if(index > 3 && index <= 7){
-		index += 8;
-	}
-	if(index > 7 && index <= 11){
-		index -= 4;
-	}
 	printf("index = %d, key = %d\n", index, key);
 	
 	autoflush_lineselection[index] = key;
-	while(i < 8){
-		printf("autoflush_lineselection %d = %d ", i, autoflush_lineselection[i] );
-		i++;
-	}
-	printf("\n");
+	fpga_flushctl_oneline(key, index);
+
 }
 
 void henhouse_page12_press_confirmorreset(unsigned short key_addr_offset, 
@@ -485,9 +468,9 @@ static void manualflush_lineselect(){
 	while(i < 64){
 		if(manualflush_lineselection[i] == 1){
 			henhouse_top_level_water_ctl(1);
-			fpga_flushall_ctl_oneline(1, i);/* start flush */
+			fpga_flushctl_oneline(1, i);/* start flush */
 			setTimer(manflush_min * 60 + manflush_sec);
-			fpga_flushall_ctl_oneline(0, i);/* stop flush */
+			fpga_flushctl_oneline(0, i);/* stop flush */
 			henhouse_top_level_water_ctl(0);
 		}
 		i++;
@@ -542,7 +525,7 @@ void henhouse_page15_press_confirmorcancel(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&manualthd_run_cond);
 		pthread_mutex_unlock(&eqintervalthd_run_cond_mutex);
 		pthread_cancel(henhouse_flush_manual_thread);
-		fpga_flushall_ctl(0);
+		fpga_flushctl_all(0);
 		henhouse_top_level_water_ctl(0);
 	}
 }
@@ -560,12 +543,12 @@ void henhouse_page17_press_confirmorreset(unsigned short key_addr_offset,
 }
 
 static void dosing_henhouse(){
-	fpga_flushall_ctl_oneline(0, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
-	fpga_flushall_ctl_oneline(0, TOP_LEVEL_FLUSH_LINE_NUM);
-	fpga_flushall_ctl_oneline(1, DOSING_LINE_NUM);
+	fpga_flushctl_oneline(0, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+	fpga_flushctl_oneline(0, TOP_LEVEL_FLUSH_LINE_NUM);
+	fpga_flushctl_oneline(1, DOSING_LINE_NUM);
 	setTimer(1000);
-	fpga_flushall_ctl_oneline(0, DOSING_LINE_NUM);
-	fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+	fpga_flushctl_oneline(0, DOSING_LINE_NUM);
+	fpga_flushctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 }
 
 static pthread_t henhouse_dosing_thread;
@@ -644,9 +627,9 @@ void henhouse_page18_press_confirmorresetorstop(unsigned short key_addr_offset,
 		pthread_cond_broadcast(&dosingthd_run_cond);
 		pthread_mutex_unlock(&dosingthd_run_cond_mutex);
 		pthread_cancel(henhouse_dosing_thread);
-		fpga_flushall_ctl_oneline(0, DOSING_LINE_NUM);
+		fpga_flushctl_oneline(0, DOSING_LINE_NUM);
 		if(flush_afterdosing == 1){
-			fpga_flushall_ctl(0);
+			fpga_flushctl_all(0);
 		}
 		henhouse_top_level_water_ctl(0);
 	}
@@ -1219,7 +1202,7 @@ int main(int argc,char **argv){
 		printf("dgus_init error\n");
 		return ret;
 	}
-	fpga_flushall_ctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
+	fpga_flushctl_oneline(1, TOP_LEVEL_WARTER_SUPPLY_LINE_NUM);
 	henhouse_flush_byeqinterval_init();
 	henhouse_flush_bydate_init();
 	henhouse_flush_manual_init();

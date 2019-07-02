@@ -10,93 +10,73 @@
 #define CONTROL_STATUS_MEM_LEN 4
 
 static int fpga_fd = -1;
-static unsigned short buf[CONTROL_STATUS_MEM_LEN + 1];
+static unsigned short buf_read[CONTROL_STATUS_MEM_LEN + 1];
+static unsigned short buf_write[CONTROL_STATUS_MEM_LEN + 1] = {0, 0xffff, 0xffff, 0xffff, 0xffff};
 
-int fpga_read_mem(unsigned short addr, unsigned short *data, int len){
+static int fpga_read_mem(unsigned short addr, int len){
 
-	int ret = 0;
-
-	//printf("%s:%d addr = %x, status = %x\n", __func__, __LINE__, addr, buf[1]);
+	int ret = -1;
 	if(fpga_fd > 0 &&
-		data != NULL &&
 		len <= CONTROL_STATUS_MEM_LEN &&
 		len > 0){
-		memset(buf, 0, sizeof(buf));
-		buf[0] = addr;
-		ret = read(fpga_fd, buf, len * 2 + 2);
-		if(ret > 0){
-			//printf("%s:%d addr = %x, status = %x\n", __func__, __LINE__, buf[0], buf[1]);
-			memcpy(data, buf + 1, len * 2);				
-		}
+		memset(buf_read, 0, len * 2 + 2);
+		buf_read[0] = addr;
+		ret = read(fpga_fd, buf_read, len * 2 + 2);
 	}
 	return ret;
 }
 
-int fpga_write_mem(unsigned short addr, unsigned short *data, int len){
+static int fpga_write_mem(unsigned short addr, int len){
 
-	int ret = 0;
-
-	printf("addr = %x, data = %x\n", addr, *data);
+	int ret = -1;
 	if(fpga_fd > 0 &&
-		data != NULL &&
 		len <= CONTROL_STATUS_MEM_LEN &&
 		len > 0){
-		memset(buf, 0, sizeof(buf));
-		buf[0] == addr;
-		memcpy(buf + 1, data, len * 2);	
-		ret = write(fpga_fd, buf, len * 2 + 2);
+		buf_write[0] == addr;
+		ret = write(fpga_fd, buf_write, len * 2 + 2);
 	}
 	return ret;
 }
-static unsigned short reg_data = 0xffff;
-void fpga_flushall_ctl(unsigned short is_start){
+
+void fpga_flushctl_all(unsigned short is_start){
 	int i = 0;
+	unsigned short data = is_start ? 0x0 : 0xffff;
 
-	if(is_start == 1){
-		reg_data &= 0xff00;
-	}else{
-		reg_data |= 0xff;
-	}
-	while(i < 1){
-		fpga_write_mem(i << 1, &reg_data, 1);
-		i++;
-	}
+	buf_write[1] = buf_write[2] = buf_write[3] = buf_write[4] = data;
+	fpga_write_mem(0, 4);
 }
 
-void fpga_flushall_ctl_oneline(unsigned short is_start, int line){
+void fpga_flushctl_oneline(unsigned short is_start, int line){
 	int addr = line / 16;
 	unsigned short mask = 1 << (line % 16);
 
 	if(is_start == 1){
-		reg_data &= ~mask;
+		buf_write[addr] &= ~mask;
 	}else{
-		reg_data |= mask;
+		buf_write[addr] |= mask;
 	}
-	fpga_write_mem(addr << 1, &reg_data, 1);
+	fpga_write_mem(addr << 1, 1);
 }
 
 unsigned short fpga_read_ad(int i){
 	unsigned short addr = i + 6;
-	unsigned short data;
 
-	fpga_read_mem(addr << 1, &data, 1);
-	return data;
+	fpga_read_mem(addr << 1, 1);
+	return buf_read[1];
 }
 
 unsigned short fpga_read_reedswitch(){
 	unsigned short addr = 0x5;
-	unsigned short data;
 
-	fpga_read_mem(addr << 1, &data, 1);
-	return data;
+	fpga_read_mem(addr << 1, 1);
+	return buf_read[1];
 }
 
 unsigned short fpga_read_flow(int i){
 	unsigned short addr = i;
-	unsigned short data;
 
-	fpga_read_mem(addr << 1, &data, 1);
-	return data;
+	fpga_read_mem(addr << 1, 1);
+	return buf_read[1];
 }
 
 int fpga_init(){
@@ -108,7 +88,7 @@ int fpga_init(){
 		printf("open %s error\n", FPGA_DEVICE);
 		return -1;
 	}
-	fpga_flushall_ctl(0);
+	fpga_flushctl_all(0);
 	return 0;
 }
 
